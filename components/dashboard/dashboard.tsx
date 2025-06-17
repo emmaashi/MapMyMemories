@@ -145,17 +145,6 @@ export default function Dashboard({ user }: DashboardProps) {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Enhanced Stats Section */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-3xl font-light text-gray-900">Your Journey</h2>
-              <p className="text-gray-600 font-light">Track your adventures around the world</p>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <TrendingUp className="h-4 w-4" />
-              <span className="font-light">Updated just now</span>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Locations Card */}
             <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200/50">

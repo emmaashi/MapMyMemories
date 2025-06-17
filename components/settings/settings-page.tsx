@@ -154,7 +154,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
                     id="fullName"
                     value={profile.full_name || ""}
                     onChange={(e) => handleInputChange("full_name", e.target.value)}
-                    placeholder="Emma Shi"
+                    placeholder=""
                     className="h-12 border-gray-200 font-light"
                   />
                 </div>
@@ -177,7 +177,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
                     id="phone"
                     value={profile.phone_number || ""}
                     onChange={(e) => handleInputChange("phone_number", e.target.value)}
-                    placeholder="6476310864"
+                    placeholder=""
                     className="h-12 border-gray-200 font-light"
                   />
                 </div>
@@ -234,7 +234,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
                     id="emergencyName"
                     value={profile.emergency_contact_name || ""}
                     onChange={(e) => handleInputChange("emergency_contact_name", e.target.value)}
-                    placeholder="Xiaoyan Zhai"
+                    placeholder=""
                     className="h-12 border-gray-200 font-light"
                   />
                 </div>
@@ -246,7 +246,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
                     id="emergencyPhone"
                     value={profile.emergency_contact_phone || ""}
                     onChange={(e) => handleInputChange("emergency_contact_phone", e.target.value)}
-                    placeholder="4165093800"
+                    placeholder=""
                     className="h-12 border-gray-200 font-light"
                   />
                 </div>

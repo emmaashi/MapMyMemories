@@ -100,14 +100,13 @@ export default function LandingPage() {
         <div className="mb-8">
 
           <h1 className="text-5xl md:text-7xl font-light text-gray-900 leading-[0.9] mb-6 tracking-tight">
-            Everything You Need.
+            Your travel stories,
             <br />
-            Before You Travel.
+             all in one place.
           </h1>
 
           <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed font-light">
-            Map My Memories is a beautiful way to document your travels. Click anywhere on the world to pin your
-            adventures and create stunning visual stories.
+           Click anywhere on the world to pin your adventures and create stunning visual stories. 
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
