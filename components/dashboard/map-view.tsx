@@ -59,27 +59,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   const [showMapStyles, setShowMapStyles] = useState(false)
   const supabase = createClient()
 
-  // Calculate distance between two coordinates in kilometers
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371 // Radius of the Earth in kilometers
-    const dLat = ((lat2 - lat1) * Math.PI) / 180
-    const dLon = ((lon2 - lon1) * Math.PI) / 180
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    const d = R * c // Distance in kilometers
-    return d
-  }
-
-  // Find existing location within 5km radius
-  const findNearbyLocation = (lat: number, lng: number) => {
-    return locations.find((location) => {
-      const distance = calculateDistance(lat, lng, location.latitude, location.longitude)
-      return distance < 5 // Within 5km radius
-    })
-  }
-
   // Reset form when modal opens/closes
   const resetForm = () => {
     setCityName("")
@@ -126,9 +105,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           tempMarker.current.remove()
         }
 
-        // Check for nearby existing location
-        const nearbyLocation = findNearbyLocation(lat, lng)
-
         // Add temporary marker
         const mapboxgl = (window as any).mapboxgl
         const el = document.createElement("div")
@@ -150,17 +126,9 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           // Reset form first
           resetForm()
 
-          if (nearbyLocation) {
-            // Edit existing location
-            setIsEditMode(true)
-            setEditingLocation(nearbyLocation)
-            populateFormWithLocation(nearbyLocation)
-          } else {
-            // Add new location
-            setClickedCoords({ lat, lng })
-            setCityName(placeName)
-          }
-
+          // Always add new location for search results
+          setClickedCoords({ lat, lng })
+          setCityName(placeName)
           setShowModal(true)
 
           // Remove temp marker
@@ -281,30 +249,20 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         // Reset form first
         resetForm()
 
-        // Check for nearby existing location
-        const nearbyLocation = findNearbyLocation(lat, lng)
+        // Always add new location when clicking on map (no nearby detection)
+        setClickedCoords({ lat, lng })
 
-        if (nearbyLocation) {
-          // Edit existing location
-          setIsEditMode(true)
-          setEditingLocation(nearbyLocation)
-          populateFormWithLocation(nearbyLocation)
-        } else {
-          // Add new location
-          setClickedCoords({ lat, lng })
-
-          // Reverse geocode to get location name
-          fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}`,
-          )
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.features && data.features.length > 0) {
-                setCityName(data.features[0].place_name)
-              }
-            })
-            .catch((err) => console.log("Geocoding error:", err))
-        }
+        // Reverse geocode to get location name
+        fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}`,
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.features && data.features.length > 0) {
+              setCityName(data.features[0].place_name)
+            }
+          })
+          .catch((err) => console.log("Geocoding error:", err))
 
         setShowModal(true)
       })
@@ -337,12 +295,13 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     locations.forEach((location) => {
       const mapboxgl = (window as any).mapboxgl
 
-      // Create custom marker element with beautiful design
+      // Create custom marker element with beautiful design and animation
       const el = document.createElement("div")
       el.className = "custom-marker"
       el.innerHTML = `
-        <div class="relative">
-          <div class="w-8 h-8 bg-gradient-to-br from-red-500 to-pink-600 rounded-full border-3 border-white shadow-lg flex items-center justify-center transform hover:scale-110 transition-transform cursor-pointer">
+        <div class="relative marker-container">
+          <div class="marker-pulse absolute inset-0 w-8 h-8 bg-red-400 rounded-full animate-ping opacity-20"></div>
+          <div class="marker-main relative w-8 h-8 bg-gradient-to-br from-red-500 to-pink-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center transform transition-all duration-200 hover:scale-110 cursor-pointer">
             <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
             </svg>
@@ -351,46 +310,46 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         </div>
       `
 
-      // Prevent click event from bubbling to the map
-      el.addEventListener("click", (e) => {
-        e.stopPropagation()
-      })
-
-      // Create modern popup with photo carousel
+      // Create modern popup with Vercel-inspired design
       const createPhotoCarousel = (photos: string[]) => {
         if (!photos || photos.length === 0) return ""
 
         if (photos.length === 1) {
-          return `<img src="${photos[0]}" alt="${location.city_name}" class="w-full h-40 object-cover rounded-xl mb-4" />`
+          return `
+            <div class="relative mb-6 group">
+              <img src="${photos[0]}" alt="${location.city_name}" class="w-full h-48 object-cover rounded-xl" />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+            </div>
+          `
         }
 
         return `
-          <div class="relative mb-4">
+          <div class="relative mb-6">
             <div class="photo-carousel overflow-hidden rounded-xl">
               <div class="photo-container flex transition-transform duration-300" style="width: ${photos.length * 100}%">
                 ${photos
                   .map(
                     (url, index) =>
-                      `<img src="${url}" alt="${location.city_name} ${index + 1}" class="w-full h-40 object-cover flex-shrink-0" style="width: ${100 / photos.length}%" />`,
+                      `<img src="${url}" alt="${location.city_name} ${index + 1}" class="w-full h-48 object-cover flex-shrink-0" style="width: ${100 / photos.length}%" />`,
                   )
                   .join("")}
               </div>
             </div>
-            <button class="absolute left-2 top-1/2 transform -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors photo-nav-btn" data-direction="prev">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button class="absolute left-3 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all duration-200 photo-nav-btn" data-direction="prev">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
               </svg>
             </button>
-            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 w-7 h-7 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors photo-nav-btn" data-direction="next">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button class="absolute right-3 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all duration-200 photo-nav-btn" data-direction="next">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
               </svg>
             </button>
-            <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+            <div class="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-2">
               ${photos
                 .map(
                   (_, index) =>
-                    `<div class="w-1.5 h-1.5 rounded-full bg-white/50 photo-indicator ${index === 0 ? "bg-white" : ""}" data-index="${index}"></div>`,
+                    `<div class="w-2 h-2 rounded-full bg-white/60 backdrop-blur-sm photo-indicator transition-all duration-200 ${index === 0 ? "bg-white scale-110" : ""}" data-index="${index}"></div>`,
                 )
                 .join("")}
             </div>
@@ -401,146 +360,220 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
       const popup = new mapboxgl.Popup({
         offset: 25,
         className: "modern-popup",
-        maxWidth: "320px",
-        closeButton: false, // Disable default close button
+        maxWidth: "380px",
+        closeButton: false,
       }).setHTML(`
-        <div class="p-0 max-w-sm bg-white rounded-2xl overflow-hidden">
+        <div class="popup-container bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100">
+          <!-- Header with close button -->
           <div class="relative">
-            <div class="absolute top-3 right-3 z-20 flex space-x-2">
-              <button class="edit-location-btn w-7 h-7 bg-blue-500/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors shadow-lg" data-location-id="${location.id}">
-                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-              </button>
-              <button class="delete-location-btn w-7 h-7 bg-red-500/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg" data-location-id="${location.id}">
-                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
-              </button>
-              <button class="close-popup-btn w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg">
-                <svg class="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
+            <button class="close-popup-btn absolute top-4 right-4 z-30 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all duration-200 shadow-sm">
+              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
             
-            <div class="p-5">
+            <div class="p-6 pb-4">
               ${createPhotoCarousel(location.photo_urls || [])}
               
-              <h3 class="font-light text-gray-900 text-lg mb-3 leading-tight">${location.city_name}</h3>
+              <!-- Location Title -->
+              <div class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 leading-tight mb-1">${location.city_name}</h3>
+                <div class="flex items-center text-gray-500">
+                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <span class="text-sm">Memory location</span>
+                </div>
+              </div>
               
+              <!-- Visit Date -->
               ${
                 location.visited_date
                   ? `
-                <div class="flex items-center space-x-2 text-gray-600 mb-3">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                  </svg>
-                  <span class="font-light text-sm">Visited: ${new Date(location.visited_date).toLocaleDateString()}</span>
+                <div class="flex items-center mb-4 p-3 bg-gray-50 rounded-xl">
+                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">Visited</p>
+                    <p class="text-sm text-gray-600">${new Date(location.visited_date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}</p>
+                  </div>
                 </div>
               `
                   : ""
               }
               
-              ${location.notes ? `<p class="text-gray-700 mb-3 leading-relaxed font-light text-sm">${location.notes}</p>` : ""}
+              <!-- Notes -->
+              ${
+                location.notes
+                  ? `
+                <div class="mb-4">
+                  <div class="flex items-center mb-2">
+                    <svg class="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span class="text-sm font-medium text-gray-700">Memory</span>
+                  </div>
+                  <p class="text-gray-700 leading-relaxed text-sm bg-gray-50 p-3 rounded-xl">${location.notes}</p>
+                </div>
+              `
+                  : ""
+              }
               
+              <!-- Album Link -->
               ${
                 location.album_link
                   ? `
-                <div class="pt-3 border-t border-gray-100">
-                  <a href="${location.album_link}" target="_blank" class="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-light text-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="mb-6">
+                  <a href="${location.album_link}" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition-colors duration-200 text-sm font-medium">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                     </svg>
-                    <span>View Full Album</span>
+                    View Full Album
                   </a>
                 </div>
               `
                   : ""
               }
             </div>
+            
+            <!-- Action Buttons -->
+            <div class="border-t border-gray-100 p-4 bg-gray-50/50">
+              <div class="flex space-x-2">
+                <button class="edit-location-btn flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 text-sm font-medium" data-location-id="${location.id}">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                  </svg>
+                  Edit
+                </button>
+                <button class="delete-location-btn inline-flex items-center justify-center px-4 py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl hover:bg-red-100 transition-all duration-200 text-sm font-medium" data-location-id="${location.id}">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       `)
 
-      // Add photo carousel functionality and button handlers
-      popup.on("open", () => {
-        let currentPhotoIndex = 0
-        const photoContainer = document.querySelector(".photo-container") as HTMLElement
-        const indicators = document.querySelectorAll(".photo-indicator")
-        const navButtons = document.querySelectorAll(".photo-nav-btn")
-        const closeBtn = document.querySelector(".close-popup-btn")
-        const deleteBtn = document.querySelector(".delete-location-btn")
-        const editBtn = document.querySelector(".edit-location-btn")
+      // Create the marker and add click event
+      const marker = new mapboxgl.Marker(el).setLngLat([location.longitude, location.latitude]).addTo(map.current)
 
-        // Close button handler
-        closeBtn?.addEventListener("click", (e) => {
-          e.stopPropagation()
-          popup.remove()
-        })
+      // Add click event to marker element directly with animation
+      el.addEventListener("click", (e) => {
+        e.stopPropagation()
 
-        // Delete button handler
-        deleteBtn?.addEventListener("click", (e) => {
-          e.stopPropagation()
-          const locationId = (deleteBtn as HTMLElement).dataset.locationId
-          if (locationId) {
-            popup.remove()
-            handleDeleteLocation(locationId)
-          }
-        })
-
-        // Edit button handler
-        editBtn?.addEventListener("click", (e) => {
-          e.stopPropagation()
-          const locationId = (editBtn as HTMLElement).dataset.locationId
-          const locationToEdit = locations.find((loc) => loc.id === locationId)
-          if (locationToEdit) {
-            popup.remove()
-            resetForm()
-            setIsEditMode(true)
-            setEditingLocation(locationToEdit)
-            populateFormWithLocation(locationToEdit)
-            setShowModal(true)
-          }
-        })
-
-        const updateCarousel = () => {
-          if (photoContainer) {
-            photoContainer.style.transform = `translateX(-${(currentPhotoIndex * 100) / (location.photo_urls?.length || 1)}%)`
-          }
-          indicators.forEach((indicator, index) => {
-            indicator.classList.toggle("bg-white", index === currentPhotoIndex)
-            indicator.classList.toggle("bg-white/50", index !== currentPhotoIndex)
-          })
+        // Add click animation to marker
+        const markerMain = el.querySelector(".marker-main")
+        if (markerMain) {
+          markerMain.classList.add("animate-pulse")
+          setTimeout(() => {
+            markerMain.classList.remove("animate-pulse")
+          }, 600)
         }
 
-        navButtons.forEach((button) => {
-          button.addEventListener("click", (e) => {
-            e.stopPropagation()
-            const direction = (button as HTMLElement).dataset.direction
-            const totalPhotos = location.photo_urls?.length || 1
+        // Close any existing popups
+        const existingPopups = document.querySelectorAll(".mapboxgl-popup")
+        existingPopups.forEach((popup) => popup.remove())
 
-            if (direction === "next") {
-              currentPhotoIndex = (currentPhotoIndex + 1) % totalPhotos
-            } else {
-              currentPhotoIndex = currentPhotoIndex === 0 ? totalPhotos - 1 : currentPhotoIndex - 1
-            }
-            updateCarousel()
-          })
-        })
+        // Add the popup to the marker and open it
+        marker.setPopup(popup)
+        popup.addTo(map.current)
 
+        // Setup popup event handlers after it's added
+        setTimeout(() => {
+          setupPopupHandlers(popup, location)
+        }, 100)
+      })
+    })
+
+    // Add this helper function after the locations.forEach loop:
+    const setupPopupHandlers = (popup: any, location: Location) => {
+      let currentPhotoIndex = 0
+      const photoContainer = document.querySelector(".photo-container") as HTMLElement
+      const indicators = document.querySelectorAll(".photo-indicator")
+      const navButtons = document.querySelectorAll(".photo-nav-btn")
+      const closeBtn = document.querySelector(".close-popup-btn")
+      const deleteBtn = document.querySelector(".delete-location-btn")
+      const editBtn = document.querySelector(".edit-location-btn")
+
+      // Close button handler
+      closeBtn?.addEventListener("click", (e) => {
+        e.stopPropagation()
+        popup.remove()
+      })
+
+      // Delete button handler
+      deleteBtn?.addEventListener("click", (e) => {
+        e.stopPropagation()
+        const locationId = (deleteBtn as HTMLElement).dataset.locationId
+        if (locationId) {
+          popup.remove()
+          handleDeleteLocation(locationId)
+        }
+      })
+
+      // Edit button handler
+      editBtn?.addEventListener("click", (e) => {
+        e.stopPropagation()
+        const locationId = (editBtn as HTMLElement).dataset.locationId
+        const locationToEdit = locations.find((loc) => loc.id === locationId)
+        if (locationToEdit) {
+          popup.remove()
+          resetForm()
+          setIsEditMode(true)
+          setEditingLocation(locationToEdit)
+          populateFormWithLocation(locationToEdit)
+          setShowModal(true)
+        }
+      })
+
+      const updateCarousel = () => {
+        if (photoContainer) {
+          photoContainer.style.transform = `translateX(-${(currentPhotoIndex * 100) / (location.photo_urls?.length || 1)}%)`
+        }
         indicators.forEach((indicator, index) => {
-          indicator.addEventListener("click", (e) => {
-            e.stopPropagation()
-            currentPhotoIndex = index
-            updateCarousel()
-          })
+          if (index === currentPhotoIndex) {
+            indicator.classList.add("bg-white", "scale-110")
+            indicator.classList.remove("bg-white/60")
+          } else {
+            indicator.classList.remove("bg-white", "scale-110")
+            indicator.classList.add("bg-white/60")
+          }
+        })
+      }
+
+      navButtons.forEach((button) => {
+        button.addEventListener("click", (e) => {
+          e.stopPropagation()
+          const direction = (button as HTMLElement).dataset.direction
+          const totalPhotos = location.photo_urls?.length || 1
+
+          if (direction === "next") {
+            currentPhotoIndex = (currentPhotoIndex + 1) % totalPhotos
+          } else {
+            currentPhotoIndex = currentPhotoIndex === 0 ? totalPhotos - 1 : currentPhotoIndex - 1
+          }
+          updateCarousel()
         })
       })
 
-      // Add marker to map
-      new mapboxgl.Marker(el).setLngLat([location.longitude, location.latitude]).setPopup(popup).addTo(map.current)
-    })
+      indicators.forEach((indicator, index) => {
+        indicator.addEventListener("click", (e) => {
+          e.stopPropagation()
+          currentPhotoIndex = index
+          updateCarousel()
+        })
+      })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -868,12 +901,29 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         .modern-popup .mapboxgl-popup-content {
           padding: 0 !important;
           border-radius: 16px !important;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
           border: none !important;
-          background: white !important;
+          background: transparent !important;
+          max-width: 380px !important;
         }
         .modern-popup .mapboxgl-popup-tip {
           border-top-color: white !important;
+        }
+        .popup-container {
+          animation: popupSlideIn 0.3s ease-out;
+        }
+        @keyframes popupSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        .marker-container:hover .marker-pulse {
+          animation-duration: 1s;
         }
         .photo-container {
           transition: transform 0.3s ease-in-out;
