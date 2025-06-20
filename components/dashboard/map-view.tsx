@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { MapPin, ImagePlus, ExternalLink, Search, Layers } from "lucide-react"
+import { MapPin, ImagePlus, ExternalLink, Search, Layers, Edit3 } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
 
 interface Location {
@@ -42,7 +42,9 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<any>(null)
   const tempMarker = useRef<any>(null)
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null)
   const [clickedCoords, setClickedCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [cityName, setCityName] = useState("")
   const [notes, setNotes] = useState("")
@@ -57,6 +59,27 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   const [showMapStyles, setShowMapStyles] = useState(false)
   const supabase = createClient()
 
+  // Calculate distance between two coordinates in kilometers
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371 // Radius of the Earth in kilometers
+    const dLat = ((lat2 - lat1) * Math.PI) / 180
+    const dLon = ((lon2 - lon1) * Math.PI) / 180
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    const d = R * c // Distance in kilometers
+    return d
+  }
+
+  // Find existing location within 5km radius
+  const findNearbyLocation = (lat: number, lng: number) => {
+    return locations.find((location) => {
+      const distance = calculateDistance(lat, lng, location.latitude, location.longitude)
+      return distance < 5 // Within 5km radius
+    })
+  }
+
   // Reset form when modal opens/closes
   const resetForm = () => {
     setCityName("")
@@ -66,11 +89,21 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     setPhotos([])
     setClickedCoords(null)
     setError("")
+    setIsEditMode(false)
+    setEditingLocation(null)
   }
 
   const handleModalClose = () => {
-    setShowAddModal(false)
+    setShowModal(false)
     resetForm()
+  }
+
+  const populateFormWithLocation = (location: Location) => {
+    setCityName(location.city_name)
+    setNotes(location.notes || "")
+    setAlbumLink(location.album_link || "")
+    setVisitedDate(location.visited_date || "")
+    setPhotos([]) // Can't pre-populate files, user will need to re-upload if they want to change photos
   }
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -93,6 +126,9 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           tempMarker.current.remove()
         }
 
+        // Check for nearby existing location
+        const nearbyLocation = findNearbyLocation(lat, lng)
+
         // Add temporary marker
         const mapboxgl = (window as any).mapboxgl
         const el = document.createElement("div")
@@ -111,11 +147,22 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         // Add click handler to temp marker
         el.addEventListener("click", (e) => {
           e.stopPropagation()
-          // Reset form and set coordinates
+          // Reset form first
           resetForm()
-          setClickedCoords({ lat, lng })
-          setCityName(placeName)
-          setShowAddModal(true)
+
+          if (nearbyLocation) {
+            // Edit existing location
+            setIsEditMode(true)
+            setEditingLocation(nearbyLocation)
+            populateFormWithLocation(nearbyLocation)
+          } else {
+            // Add new location
+            setClickedCoords({ lat, lng })
+            setCityName(placeName)
+          }
+
+          setShowModal(true)
+
           // Remove temp marker
           if (tempMarker.current) {
             tempMarker.current.remove()
@@ -150,7 +197,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
       if (error) throw error
 
-      onLocationAdded() // Refresh the locations
+      onLocationAdded() // This will refresh the locations and update all counters
     } catch (err: any) {
       console.error("Error deleting location:", err)
     }
@@ -214,11 +261,14 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
       // Add click handler - but prevent it when clicking on markers
       map.current.on("click", (e: any) => {
-        // Check if click was on a marker
-        const features = map.current.queryRenderedFeatures(e.point)
-        const clickedOnMarker = features.some((feature: any) => feature.source === "markers")
+        // Check if click was on a marker by checking if the target has marker-related classes
+        const clickTarget = e.originalEvent.target
+        const isMarkerClick =
+          clickTarget.closest(".custom-marker") ||
+          clickTarget.closest(".mapboxgl-marker") ||
+          clickTarget.closest(".mapboxgl-popup")
 
-        if (clickedOnMarker) return // Don't show add modal if clicking on existing marker
+        if (isMarkerClick) return // Don't show modal if clicking on existing marker or popup
 
         const { lng, lat } = e.lngLat
 
@@ -231,21 +281,32 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         // Reset form first
         resetForm()
 
-        setClickedCoords({ lat, lng })
+        // Check for nearby existing location
+        const nearbyLocation = findNearbyLocation(lat, lng)
 
-        // Reverse geocode to get location name
-        fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}`,
-        )
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.features && data.features.length > 0) {
-              setCityName(data.features[0].place_name)
-            }
-          })
-          .catch((err) => console.log("Geocoding error:", err))
+        if (nearbyLocation) {
+          // Edit existing location
+          setIsEditMode(true)
+          setEditingLocation(nearbyLocation)
+          populateFormWithLocation(nearbyLocation)
+        } else {
+          // Add new location
+          setClickedCoords({ lat, lng })
 
-        setShowAddModal(true)
+          // Reverse geocode to get location name
+          fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}`,
+          )
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.features && data.features.length > 0) {
+                setCityName(data.features[0].place_name)
+              }
+            })
+            .catch((err) => console.log("Geocoding error:", err))
+        }
+
+        setShowModal(true)
       })
 
       // Add existing location markers
@@ -289,6 +350,11 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           <div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gradient-to-br from-red-500 to-pink-600 rotate-45"></div>
         </div>
       `
+
+      // Prevent click event from bubbling to the map
+      el.addEventListener("click", (e) => {
+        e.stopPropagation()
+      })
 
       // Create modern popup with photo carousel
       const createPhotoCarousel = (photos: string[]) => {
@@ -341,6 +407,11 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         <div class="p-0 max-w-sm bg-white rounded-2xl overflow-hidden">
           <div class="relative">
             <div class="absolute top-3 right-3 z-20 flex space-x-2">
+              <button class="edit-location-btn w-7 h-7 bg-blue-500/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors shadow-lg" data-location-id="${location.id}">
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+              </button>
               <button class="delete-location-btn w-7 h-7 bg-red-500/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg" data-location-id="${location.id}">
                 <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -400,6 +471,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         const navButtons = document.querySelectorAll(".photo-nav-btn")
         const closeBtn = document.querySelector(".close-popup-btn")
         const deleteBtn = document.querySelector(".delete-location-btn")
+        const editBtn = document.querySelector(".edit-location-btn")
 
         // Close button handler
         closeBtn?.addEventListener("click", (e) => {
@@ -414,6 +486,21 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           if (locationId) {
             popup.remove()
             handleDeleteLocation(locationId)
+          }
+        })
+
+        // Edit button handler
+        editBtn?.addEventListener("click", (e) => {
+          e.stopPropagation()
+          const locationId = (editBtn as HTMLElement).dataset.locationId
+          const locationToEdit = locations.find((loc) => loc.id === locationId)
+          if (locationToEdit) {
+            popup.remove()
+            resetForm()
+            setIsEditMode(true)
+            setEditingLocation(locationToEdit)
+            populateFormWithLocation(locationToEdit)
+            setShowModal(true)
           }
         })
 
@@ -458,7 +545,9 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!clickedCoords) return
+
+    if (!isEditMode && !clickedCoords) return
+    if (isEditMode && !editingLocation) return
 
     setLoading(true)
     setError("")
@@ -466,7 +555,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     try {
       let photoUrls: string[] = []
 
-      // Upload multiple photos
+      // Upload multiple photos if provided
       if (photos.length > 0) {
         const uploadPromises = photos.map(async (photo) => {
           const fileExt = photo.name.split(".").pop()
@@ -488,20 +577,42 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         photoUrls = await Promise.all(uploadPromises)
       }
 
-      const { error: insertError } = await supabase.from("locations").insert({
-        user_id: user.id,
-        city_name: cityName,
-        latitude: clickedCoords.lat,
-        longitude: clickedCoords.lng,
-        notes: notes || null,
-        photo_urls: photoUrls.length > 0 ? photoUrls : null,
-        album_link: albumLink || null,
-        visited_date: visitedDate || null,
-      })
+      if (isEditMode && editingLocation) {
+        // Update existing location
+        const updateData: any = {
+          city_name: cityName,
+          notes: notes || null,
+          album_link: albumLink || null,
+          visited_date: visitedDate || null,
+        }
 
-      if (insertError) throw insertError
+        // Only update photos if new ones were uploaded
+        if (photoUrls.length > 0) {
+          // Combine existing photos with new ones
+          const existingPhotos = editingLocation.photo_urls || []
+          updateData.photo_urls = [...existingPhotos, ...photoUrls]
+        }
 
-      onLocationAdded()
+        const { error: updateError } = await supabase.from("locations").update(updateData).eq("id", editingLocation.id)
+
+        if (updateError) throw updateError
+      } else {
+        // Insert new location
+        const { error: insertError } = await supabase.from("locations").insert({
+          user_id: user.id,
+          city_name: cityName,
+          latitude: clickedCoords!.lat,
+          longitude: clickedCoords!.lng,
+          notes: notes || null,
+          photo_urls: photoUrls.length > 0 ? photoUrls : null,
+          album_link: albumLink || null,
+          visited_date: visitedDate || null,
+        })
+
+        if (insertError) throw insertError
+      }
+
+      onLocationAdded() // This will refresh the locations and update all counters
       handleModalClose()
     } catch (err: any) {
       setError(err.message)
@@ -511,12 +622,10 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  if (e.target.files) {
-    const newPhotos = Array.from(e.target.files)
-    setPhotos((prevPhotos) => [...prevPhotos, ...newPhotos])
-    e.target.value = ""
+    if (e.target.files) {
+      setPhotos(Array.from(e.target.files))
+    }
   }
-}
 
   const removePhoto = (index: number) => {
     setPhotos(photos.filter((_, i) => i !== index))
@@ -586,15 +695,29 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         <div ref={mapContainer} className="w-full h-[600px] rounded-xl" />
       </div>
 
-      {/* Add Location Modal */}
-      {showAddModal && (
+      {/* Add/Edit Location Modal */}
+      {showModal && (
         <Dialog open={true} onOpenChange={handleModalClose}>
           <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-lg font-light flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                <span>Add Memory</span>
+                {isEditMode ? (
+                  <>
+                    <Edit3 className="h-4 w-4 text-blue-600" />
+                    <span>Edit Memory</span>
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="h-4 w-4 text-blue-600" />
+                    <span>Add Memory</span>
+                  </>
+                )}
               </DialogTitle>
+              {isEditMode && (
+                <p className="text-sm text-gray-600 font-light">
+                  Updating your memory for {editingLocation?.city_name}
+                </p>
+              )}
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -643,7 +766,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
               <div className="space-y-2">
                 <Label htmlFor="photos" className="font-light">
-                  Photos {photos.length > 0 && `(${photos.length} selected)`}
+                  {isEditMode ? "Add More Photos" : "Photos"} {photos.length > 0 && `(${photos.length} selected)`}
                 </Label>
                 <div className="space-y-3">
                   <Input
@@ -661,7 +784,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                     className="flex items-center space-x-2 rounded-xl font-light w-full h-10 border-dashed border-2 hover:bg-gray-50 text-sm"
                   >
                     <ImagePlus className="h-4 w-4" />
-                    <span>Choose Photos</span>
+                    <span>{isEditMode ? "Add More Photos" : "Choose Photos"}</span>
                   </Button>
 
                   {photos.length > 0 && (
@@ -682,6 +805,22 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                           </button>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {isEditMode && editingLocation?.photo_urls && editingLocation.photo_urls.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-sm text-gray-600 font-light mb-2">Existing Photos:</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {editingLocation.photo_urls.map((url, index) => (
+                          <img
+                            key={index}
+                            src={url || "/placeholder.svg"}
+                            alt={`Existing ${index + 1}`}
+                            className="w-full h-16 object-cover rounded-lg"
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -717,7 +856,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                   disabled={loading}
                   className="bg-blue-600 hover:bg-blue-700 rounded-xl font-light text-sm"
                 >
-                  {loading ? "Adding..." : "Add Memory"}
+                  {loading ? (isEditMode ? "Updating..." : "Adding...") : isEditMode ? "Update Memory" : "Add Memory"}
                 </Button>
               </div>
             </form>

@@ -3,7 +3,7 @@
 import { useRef, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { MapPin, Sparkles, Globe2 } from "lucide-react"
+import { MapPin, Sparkles } from "lucide-react"
 
 export default function LandingPage() {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -29,14 +29,13 @@ export default function LandingPage() {
 
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: "mapbox://styles/mapbox/light-v11", // Clean, minimal style for homepage
-        center: [20, 20], // Center on world view
+        style: "mapbox://styles/mapbox/light-v11",
+        center: [20, 20],
         zoom: 1.5,
-        interactive: false, // Disable interaction for demo purposes
+        interactive: false,
         attributionControl: false,
       })
 
-      // Add some demo markers for visual appeal
       const demoLocations = [
         { lng: -74.006, lat: 40.7128, color: "#ef4444" }, // New York - Red
         { lng: 2.3522, lat: 48.8566, color: "#3b82f6" }, // Paris - Blue
@@ -47,7 +46,6 @@ export default function LandingPage() {
 
       map.current.on("load", () => {
         demoLocations.forEach((location, index) => {
-          // Add animated markers
           const el = document.createElement("div")
           el.className = "demo-marker"
           el.style.cssText = `
@@ -77,10 +75,7 @@ export default function LandingPage() {
       {/* Simplified Navigation */}
       <nav className="flex items-center justify-between p-6 max-w-6xl mx-auto">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-            <Globe2 className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-xl font-light text-gray-900">Map My Memories</span>
+          <img src="/logo.png" alt="Map My Memories" className="h-20 w-auto" />
         </div>
 
         <div className="flex items-center space-x-3">
@@ -99,7 +94,7 @@ export default function LandingPage() {
       <div className="max-w-4xl mx-auto px-6 pt-20 pb-16 text-center">
         <div className="mb-8">
 
-          <h1 className="text-5xl md:text-7xl font-light text-gray-900 leading-[0.9] mb-6 tracking-tight">
+          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 leading-[0.9] mb-6 tracking-tight">
             Your travel stories,
             <br />
              all in one place.

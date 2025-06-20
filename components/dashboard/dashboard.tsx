@@ -63,7 +63,7 @@ export default function Dashboard({ user }: DashboardProps) {
   }
 
   const handleLocationAdded = () => {
-    fetchLocations()
+    fetchLocations() // This will refresh the locations and update all counters
   }
 
   const exportMap = () => {
@@ -87,10 +87,7 @@ export default function Dashboard({ user }: DashboardProps) {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Globe2 className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-light text-gray-900">Map My Memories</span>
+              <img src="/logo.png" alt="Map My Memories" className="h-14 w-auto" />
             </div>
 
             <div className="flex items-center space-x-4">
@@ -145,6 +142,17 @@ export default function Dashboard({ user }: DashboardProps) {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Enhanced Stats Section */}
         <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-3xl font-light text-gray-900">Your Journey</h2>
+              <p className="text-gray-600 font-light">Track your adventures around the world</p>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <TrendingUp className="h-4 w-4" />
+              <span className="font-light">Updated just now</span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Locations Card */}
             <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200/50">
@@ -240,8 +248,6 @@ export default function Dashboard({ user }: DashboardProps) {
             </div>
           </div>
         </div>
-
-        {/* Map Section with Thin Typography */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <MapView locations={locations} onLocationAdded={handleLocationAdded} user={user} />
         </div>
