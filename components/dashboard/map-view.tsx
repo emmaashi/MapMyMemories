@@ -10,7 +10,21 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, ImagePlus, ExternalLink, Search, Layers, Edit3, Filter, X, Calendar, FileText } from "lucide-react"
+import {
+  MapPin,
+  ImagePlus,
+  ExternalLink,
+  Search,
+  Layers,
+  Edit3,
+  Filter,
+  X,
+  Calendar,
+  FileText,
+  Plus,
+  Minus,
+  RotateCcw,
+} from "lucide-react"
 import type { User } from "@supabase/supabase-js"
 
 interface Location {
@@ -94,6 +108,38 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     setActiveFilters((prev) =>
       prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId],
     )
+  }
+
+  // Map zoom controls
+  const zoomIn = () => {
+    if (map.current) {
+      map.current.zoomIn({ duration: 300 })
+    }
+  }
+
+  const zoomOut = () => {
+    if (map.current) {
+      map.current.zoomOut({ duration: 300 })
+    }
+  }
+
+  const resetView = () => {
+    if (map.current) {
+      // If there are locations, fit to bounds, otherwise reset to world view
+      if (filteredLocations.length > 0) {
+        const bounds = new (window as any).mapboxgl.LngLatBounds()
+        filteredLocations.forEach((location) => {
+          bounds.extend([location.longitude, location.latitude])
+        })
+        map.current.fitBounds(bounds, { padding: 50, duration: 1000 })
+      } else {
+        map.current.flyTo({
+          center: [0, 20],
+          zoom: 2,
+          duration: 1000,
+        })
+      }
+    }
   }
 
   // Reset form when modal opens/closes
@@ -278,6 +324,12 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         center: [-74.006, 40.7128],
         zoom: 2,
         preserveDrawingBuffer: true,
+        // Enhanced zoom settings
+        minZoom: 0.5,
+        maxZoom: 20,
+        scrollZoom: true,
+        doubleClickZoom: true,
+        touchZoomRotate: true,
       })
 
       // Get user's current location
@@ -612,8 +664,9 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
             </p>
           </div>
 
-          {/* Map Style Toggle */}
-          <div className="absolute top-4 right-4 z-10">
+          {/* Map Controls - Top Right */}
+          <div className="absolute top-4 right-4 z-10 flex flex-col space-y-2">
+            {/* Map Style Toggle */}
             <div className="relative">
               <Button
                 onClick={() => setShowMapStyles(!showMapStyles)}
@@ -640,6 +693,37 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Zoom Controls */}
+            <div className="flex flex-col space-y-1">
+              <Button
+                onClick={zoomIn}
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
+                title="Zoom In"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={zoomOut}
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
+                title="Zoom Out"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={resetView}
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
+                title="Reset View"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
@@ -717,7 +801,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto">
-              {/* Photo Section */}
+              {/* Photo Section - Only show if photos exist */}
               {selectedLocation.photo_urls && selectedLocation.photo_urls.length > 0 && (
                 <div className="relative flex-shrink-0">
                   <img
@@ -763,7 +847,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
               {/* Content Details */}
               <div className="p-6 space-y-4">
-                {/* Visit Date */}
+                {/* Visit Date - Only show if date exists */}
                 {selectedLocation.visited_date && (
                   <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-xl">
                     <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -782,8 +866,8 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                   </div>
                 )}
 
-                {/* Notes */}
-                {selectedLocation.notes && (
+                {/* Notes - Only show if notes exist */}
+                {selectedLocation.notes && selectedLocation.notes.trim() && (
                   <div>
                     <div className="flex items-center space-x-2 mb-2">
                       <FileText className="h-4 w-4 text-gray-500" />
@@ -795,8 +879,8 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                   </div>
                 )}
 
-                {/* Album Link */}
-                {selectedLocation.album_link && (
+                {/* Album Link - Only show if link exists */}
+                {selectedLocation.album_link && selectedLocation.album_link.trim() && (
                   <div>
                     <a
                       href={selectedLocation.album_link}
