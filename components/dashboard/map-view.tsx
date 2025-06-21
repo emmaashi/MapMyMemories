@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, ImagePlus, ExternalLink, Search, Layers, Edit3, Filter, X } from "lucide-react"
+import { MapPin, ImagePlus, ExternalLink, Search, Layers, Edit3, Filter, X, Calendar, FileText } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
 
 interface Location {
@@ -58,6 +58,9 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   const map = useRef<any>(null)
   const tempMarker = useRef<any>(null)
   const [showModal, setShowModal] = useState(false)
+  const [showLocationModal, setShowLocationModal] = useState(false)
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [isEditMode, setIsEditMode] = useState(false)
   const [editingLocation, setEditingLocation] = useState<Location | null>(null)
   const [clickedCoords, setClickedCoords] = useState<{ lat: number; lng: number } | null>(null)
@@ -76,6 +79,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   const [showFilters, setShowFilters] = useState(false)
   const [activeFilters, setActiveFilters] = useState<string[]>(locationCategories.map((cat) => cat.id))
   const supabase = createClient()
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([])
 
   // Get category info helper
   const getCategoryInfo = (categoryId: string) => {
@@ -100,6 +104,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     setVisitedDate("")
     setCategory("general")
     setPhotos([])
+    setExistingPhotos([])
     setClickedCoords(null)
     setError("")
     setIsEditMode(false)
@@ -111,6 +116,12 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     resetForm()
   }
 
+  const handleLocationModalClose = () => {
+    setShowLocationModal(false)
+    setSelectedLocation(null)
+    setCurrentPhotoIndex(0)
+  }
+
   const populateFormWithLocation = (location: Location) => {
     setCityName(location.city_name)
     setNotes(location.notes || "")
@@ -118,6 +129,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     setVisitedDate(location.visited_date || "")
     setCategory(location.category || "general")
     setPhotos([]) // Can't pre-populate files, user will need to re-upload if they want to change photos
+    setExistingPhotos(location.photo_urls || []) // Set existing photos for editing
   }
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -200,10 +212,20 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
       if (error) throw error
 
+      handleLocationModalClose()
       onLocationAdded() // This will refresh the locations and update all counters
     } catch (err: any) {
       console.error("Error deleting location:", err)
     }
+  }
+
+  const handleEditLocation = (location: Location) => {
+    handleLocationModalClose()
+    resetForm()
+    setIsEditMode(true)
+    setEditingLocation(location)
+    populateFormWithLocation(location)
+    setShowModal(true)
   }
 
   const changeMapStyle = (styleId: string) => {
@@ -216,6 +238,18 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
       map.current.on("styledata", () => {
         addLocationMarkers()
       })
+    }
+  }
+
+  const nextPhoto = () => {
+    if (selectedLocation?.photo_urls) {
+      setCurrentPhotoIndex((prev) => (prev + 1) % selectedLocation.photo_urls!.length)
+    }
+  }
+
+  const prevPhoto = () => {
+    if (selectedLocation?.photo_urls) {
+      setCurrentPhotoIndex((prev) => (prev === 0 ? selectedLocation.photo_urls!.length - 1 : prev - 1))
     }
   }
 
@@ -344,165 +378,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         </div>
       `
 
-      // Create modern popup with Vercel-inspired design
-      const createPhotoCarousel = (photos: string[]) => {
-        if (!photos || photos.length === 0) return ""
-
-        if (photos.length === 1) {
-          return `
-            <div class="relative mb-6 group">
-              <img src="${photos[0]}" alt="${location.city_name}" class="w-full h-48 object-cover rounded-xl" />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-            </div>
-          `
-        }
-
-        return `
-          <div class="relative mb-6">
-            <div class="photo-carousel overflow-hidden rounded-xl">
-              <div class="photo-container flex transition-transform duration-300" style="width: ${photos.length * 100}%">
-                ${photos
-                  .map(
-                    (url, index) =>
-                      `<img src="${url}" alt="${location.city_name} ${index + 1}" class="w-full h-48 object-cover flex-shrink-0" style="width: ${100 / photos.length}%" />`,
-                  )
-                  .join("")}
-              </div>
-            </div>
-            <button class="absolute left-3 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all duration-200 photo-nav-btn" data-direction="prev">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
-              </svg>
-            </button>
-            <button class="absolute right-3 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all duration-200 photo-nav-btn" data-direction="next">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-              </svg>
-            </button>
-            <div class="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-2">
-              ${photos
-                .map(
-                  (_, index) =>
-                    `<div class="w-2 h-2 rounded-full bg-white/60 backdrop-blur-sm photo-indicator transition-all duration-200 ${index === 0 ? "bg-white scale-110" : ""}" data-index="${index}"></div>`,
-                )
-                .join("")}
-            </div>
-          </div>
-        `
-      }
-
-      const popup = new mapboxgl.Popup({
-        offset: 25,
-        className: "modern-popup",
-        maxWidth: "380px",
-        closeButton: false,
-      }).setHTML(`
-        <div class="popup-container bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100">
-          <!-- Header with close button -->
-          <div class="relative">
-            <button class="close-popup-btn absolute top-4 right-4 z-30 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all duration-200 shadow-sm">
-              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
-            
-            <div class="p-6 pb-4">
-              ${createPhotoCarousel(location.photo_urls || [])}
-              
-              <!-- Location Title with Category -->
-              <div class="mb-4">
-                <div class="flex items-center mb-2">
-                  <span class="text-lg mr-2">${categoryInfo.icon}</span>
-                  <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">${categoryInfo.name}</span>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 leading-tight mb-1">${location.city_name}</h3>
-                <div class="flex items-center text-gray-500">
-                  <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
-                  <span class="text-sm">Memory location</span>
-                </div>
-              </div>
-              
-              <!-- Visit Date -->
-              ${
-                location.visited_date
-                  ? `
-                <div class="flex items-center mb-4 p-3 bg-gray-50 rounded-xl">
-                  <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                  </div>
-                  <div>
-                    <p class="text-sm font-medium text-gray-900">Visited</p>
-                    <p class="text-sm text-gray-600">${new Date(location.visited_date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}</p>
-                  </div>
-                </div>
-              `
-                  : ""
-              }
-              
-              <!-- Notes -->
-              ${
-                location.notes
-                  ? `
-                <div class="mb-4">
-                  <div class="flex items-center mb-2">
-                    <svg class="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    <span class="text-sm font-medium text-gray-700">Memory</span>
-                  </div>
-                  <p class="text-gray-700 leading-relaxed text-sm bg-gray-50 p-3 rounded-xl">${location.notes}</p>
-                </div>
-              `
-                  : ""
-              }
-              
-              <!-- Album Link -->
-              ${
-                location.album_link
-                  ? `
-                <div class="mb-6">
-                  <a href="${location.album_link}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-700 transition-colors duration-200 text-sm font-medium">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                    </svg>
-                    View Full Album
-                  </a>
-                </div>
-              `
-                  : ""
-              }
-            </div>
-            
-            <!-- Action Buttons -->
-            <div class="border-t border-gray-100 p-4 bg-gray-50/50">
-              <div class="flex space-x-2">
-                <button class="edit-location-btn flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 text-sm font-medium" data-location-id="${location.id}">
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                  </svg>
-                  Edit
-                </button>
-                <button class="delete-location-btn inline-flex items-center justify-center px-4 py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl hover:bg-red-100 transition-all duration-200 text-sm font-medium" data-location-id="${location.id}">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `)
-
-      // Create the marker and add click event
+      // Create the marker
       const marker = new mapboxgl.Marker(el).setLngLat([location.longitude, location.latitude]).addTo(map.current)
 
       // Add click event to marker element directly with animation
@@ -518,100 +394,12 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           }, 600)
         }
 
-        // Close any existing popups
-        const existingPopups = document.querySelectorAll(".mapboxgl-popup")
-        existingPopups.forEach((popup) => popup.remove())
-
-        // Add the popup to the marker and open it
-        marker.setPopup(popup)
-        popup.addTo(map.current)
-
-        // Setup popup event handlers after it's added
-        setTimeout(() => {
-          setupPopupHandlers(popup, location)
-        }, 100)
+        // Show location modal
+        setSelectedLocation(location)
+        setCurrentPhotoIndex(0)
+        setShowLocationModal(true)
       })
     })
-
-    // Add this helper function after the locations.forEach loop:
-    const setupPopupHandlers = (popup: any, location: Location) => {
-      let currentPhotoIndex = 0
-      const photoContainer = document.querySelector(".photo-container") as HTMLElement
-      const indicators = document.querySelectorAll(".photo-indicator")
-      const navButtons = document.querySelectorAll(".photo-nav-btn")
-      const closeBtn = document.querySelector(".close-popup-btn")
-      const deleteBtn = document.querySelector(".delete-location-btn")
-      const editBtn = document.querySelector(".edit-location-btn")
-
-      // Close button handler
-      closeBtn?.addEventListener("click", (e) => {
-        e.stopPropagation()
-        popup.remove()
-      })
-
-      // Delete button handler
-      deleteBtn?.addEventListener("click", (e) => {
-        e.stopPropagation()
-        const locationId = (deleteBtn as HTMLElement).dataset.locationId
-        if (locationId) {
-          popup.remove()
-          handleDeleteLocation(locationId)
-        }
-      })
-
-      // Edit button handler
-      editBtn?.addEventListener("click", (e) => {
-        e.stopPropagation()
-        const locationId = (editBtn as HTMLElement).dataset.locationId
-        const locationToEdit = locations.find((loc) => loc.id === locationId)
-        if (locationToEdit) {
-          popup.remove()
-          resetForm()
-          setIsEditMode(true)
-          setEditingLocation(locationToEdit)
-          populateFormWithLocation(locationToEdit)
-          setShowModal(true)
-        }
-      })
-
-      const updateCarousel = () => {
-        if (photoContainer) {
-          photoContainer.style.transform = `translateX(-${(currentPhotoIndex * 100) / (location.photo_urls?.length || 1)}%)`
-        }
-        indicators.forEach((indicator, index) => {
-          if (index === currentPhotoIndex) {
-            indicator.classList.add("bg-white", "scale-110")
-            indicator.classList.remove("bg-white/60")
-          } else {
-            indicator.classList.remove("bg-white", "scale-110")
-            indicator.classList.add("bg-white/60")
-          }
-        })
-      }
-
-      navButtons.forEach((button) => {
-        button.addEventListener("click", (e) => {
-          e.stopPropagation()
-          const direction = (button as HTMLElement).dataset.direction
-          const totalPhotos = location.photo_urls?.length || 1
-
-          if (direction === "next") {
-            currentPhotoIndex = (currentPhotoIndex + 1) % totalPhotos
-          } else {
-            currentPhotoIndex = currentPhotoIndex === 0 ? totalPhotos - 1 : currentPhotoIndex - 1
-          }
-          updateCarousel()
-        })
-      })
-
-      indicators.forEach((indicator, index) => {
-        indicator.addEventListener("click", (e) => {
-          e.stopPropagation()
-          currentPhotoIndex = index
-          updateCarousel()
-        })
-      })
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -648,6 +436,10 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         photoUrls = await Promise.all(uploadPromises)
       }
 
+      const removeExistingPhoto = (index: number) => {
+        setExistingPhotos(existingPhotos.filter((_, i) => i !== index))
+      }
+
       if (isEditMode && editingLocation) {
         // Update existing location
         const updateData: any = {
@@ -658,12 +450,9 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           category: category,
         }
 
-        // Only update photos if new ones were uploaded
-        if (photoUrls.length > 0) {
-          // Combine existing photos with new ones
-          const existingPhotos = editingLocation.photo_urls || []
-          updateData.photo_urls = [...existingPhotos, ...photoUrls]
-        }
+        // Handle photos - combine existing (not deleted) with new uploads
+        const finalPhotoUrls = [...existingPhotos, ...photoUrls]
+        updateData.photo_urls = finalPhotoUrls.length > 0 ? finalPhotoUrls : null
 
         const { error: updateError } = await supabase.from("locations").update(updateData).eq("id", editingLocation.id)
 
@@ -702,6 +491,10 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
   const removePhoto = (index: number) => {
     setPhotos(photos.filter((_, i) => i !== index))
+  }
+
+  const removeExistingPhoto = (index: number) => {
+    setExistingPhotos(existingPhotos.filter((_, i) => i !== index))
   }
 
   return (
@@ -854,6 +647,174 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         </div>
       </div>
 
+      {/* Location Details Modal - Centered */}
+      {showLocationModal && selectedLocation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={handleLocationModalClose}
+            style={{
+              animation: "fadeIn 0.3s ease-out",
+            }}
+          />
+
+          {/* Modal Content */}
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col overflow-hidden"
+            style={{
+              animation: "slideInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+          >
+            {/* Header - Fixed */}
+            <div className="relative p-6 pb-4 border-b border-gray-100 flex-shrink-0">
+              <button
+                onClick={handleLocationModalClose}
+                className="absolute top-4 right-4 w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+              >
+                <X className="h-4 w-4 text-gray-600" />
+              </button>
+
+              <div className="flex items-center justify-between pr-12">
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">{getCategoryInfo(selectedLocation.category || "general").icon}</span>
+                  <span className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    {getCategoryInfo(selectedLocation.category || "general").name}
+                  </span>
+                </div>
+
+                {/* Inline Action Buttons */}
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleEditLocation(selectedLocation)}
+                    className="flex items-center space-x-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Edit3 className="h-3 w-3" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteLocation(selectedLocation.id)}
+                    className="w-8 h-8 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg flex items-center justify-center transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <h2 className="text-xl font-semibold text-gray-900 leading-tight mt-3">{selectedLocation.city_name}</h2>
+              <div className="flex items-center text-gray-500 mt-1">
+                <MapPin className="h-4 w-4 mr-1.5" />
+                <span className="text-sm">Memory location</span>
+              </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Photo Section */}
+              {selectedLocation.photo_urls && selectedLocation.photo_urls.length > 0 && (
+                <div className="relative flex-shrink-0">
+                  <img
+                    src={selectedLocation.photo_urls[currentPhotoIndex] || "/placeholder.svg"}
+                    alt={selectedLocation.city_name}
+                    className="w-full h-64 object-cover"
+                  />
+
+                  {selectedLocation.photo_urls.length > 1 && (
+                    <>
+                      <button
+                        onClick={prevPhoto}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={nextPhoto}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+
+                      <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                        {selectedLocation.photo_urls.map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setCurrentPhotoIndex(index)}
+                            className={`w-2 h-2 rounded-full transition-all ${
+                              index === currentPhotoIndex ? "bg-white scale-125" : "bg-white/60"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Content Details */}
+              <div className="p-6 space-y-4">
+                {/* Visit Date */}
+                {selectedLocation.visited_date && (
+                  <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-xl">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Calendar className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Visited</p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(selectedLocation.visited_date).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {selectedLocation.notes && (
+                  <div>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">Memory</span>
+                    </div>
+                    <p className="text-gray-700 leading-relaxed text-sm bg-gray-50 p-3 rounded-xl">
+                      {selectedLocation.notes}
+                    </p>
+                  </div>
+                )}
+
+                {/* Album Link */}
+                {selectedLocation.album_link && (
+                  <div>
+                    <a
+                      href={selectedLocation.album_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors text-sm font-medium"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>View Full Album</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add/Edit Location Modal */}
       {showModal && (
         <Dialog open={true} onOpenChange={handleModalClose}>
@@ -988,17 +949,25 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                     </div>
                   )}
 
-                  {isEditMode && editingLocation?.photo_urls && editingLocation.photo_urls.length > 0 && (
+                  {isEditMode && existingPhotos.length > 0 && (
                     <div className="mt-3">
                       <p className="text-sm text-gray-600 font-light mb-2">Existing Photos:</p>
                       <div className="grid grid-cols-3 gap-2">
-                        {editingLocation.photo_urls.map((url, index) => (
-                          <img
-                            key={index}
-                            src={url || "/placeholder.svg"}
-                            alt={`Existing ${index + 1}`}
-                            className="w-full h-16 object-cover rounded-lg"
-                          />
+                        {existingPhotos.map((url, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={url || "/placeholder.svg"}
+                              alt={`Existing ${index + 1}`}
+                              className="w-full h-16 object-cover rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeExistingPhoto(index)}
+                              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              ×
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -1045,39 +1014,34 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
       )}
 
       <style jsx global>{`
-        .modern-popup .mapboxgl-popup-content {
-          padding: 0 !important;
-          border-radius: 16px !important;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-          border: none !important;
-          background: transparent !important;
-          max-width: 380px !important;
-        }
-        .modern-popup .mapboxgl-popup-tip {
-          border-top-color: white !important;
-        }
-        .popup-container {
-          animation: popupSlideIn 0.3s ease-out;
-        }
-        @keyframes popupSlideIn {
+        @keyframes fadeIn {
           from {
             opacity: 0;
-            transform: translateY(-10px) scale(0.95);
           }
           to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideInScale {
+          0% {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+          }
+          100% {
             opacity: 1;
             transform: translateY(0) scale(1);
           }
         }
+
         .marker-container:hover .marker-pulse {
           animation-duration: 1s;
         }
-        .photo-container {
-          transition: transform 0.3s ease-in-out;
-        }
+
         .temp-marker {
           cursor: pointer;
         }
+
         .temp-marker:hover {
           transform: scale(1.1);
         }
