@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { MapPin, ImagePlus, ExternalLink, Search, Layers, Edit3 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { MapPin, ImagePlus, ExternalLink, Search, Layers, Edit3, Filter, X } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
 
 interface Location {
@@ -21,6 +22,7 @@ interface Location {
   photo_urls?: string[]
   album_link?: string
   visited_date?: string
+  category?: string
   user_id: string
 }
 
@@ -38,6 +40,19 @@ const mapStyles = [
   { id: "dark-v11", name: "Dark", icon: "🌙" },
 ]
 
+const locationCategories = [
+  { id: "general", name: "General", icon: "📍", color: "from-gray-500 to-gray-600" },
+  { id: "historical", name: "Historical", icon: "🏛️", color: "from-amber-500 to-orange-600" },
+  { id: "food", name: "Food & Dining", icon: "🍽️", color: "from-red-500 to-pink-600" },
+  { id: "nature", name: "Nature", icon: "🏞️", color: "from-green-500 to-emerald-600" },
+  { id: "beach", name: "Beach", icon: "🏖️", color: "from-blue-500 to-cyan-600" },
+  { id: "urban", name: "Urban", icon: "🏙️", color: "from-purple-500 to-violet-600" },
+  { id: "entertainment", name: "Entertainment", icon: "🎭", color: "from-pink-500 to-rose-600" },
+  { id: "shopping", name: "Shopping", icon: "🛍️", color: "from-indigo-500 to-blue-600" },
+  { id: "accommodation", name: "Hotels", icon: "🏨", color: "from-teal-500 to-green-600" },
+  { id: "photo", name: "Photo Spot", icon: "📸", color: "from-yellow-500 to-orange-600" },
+]
+
 export default function MapView({ locations, onLocationAdded, user }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<any>(null)
@@ -50,6 +65,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   const [notes, setNotes] = useState("")
   const [albumLink, setAlbumLink] = useState("")
   const [visitedDate, setVisitedDate] = useState("")
+  const [category, setCategory] = useState("general")
   const [photos, setPhotos] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -57,7 +73,24 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   const [searchLoading, setSearchLoading] = useState(false)
   const [currentMapStyle, setCurrentMapStyle] = useState("outdoors-v12")
   const [showMapStyles, setShowMapStyles] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [activeFilters, setActiveFilters] = useState<string[]>(locationCategories.map((cat) => cat.id))
   const supabase = createClient()
+
+  // Get category info helper
+  const getCategoryInfo = (categoryId: string) => {
+    return locationCategories.find((cat) => cat.id === categoryId) || locationCategories[0]
+  }
+
+  // Filter locations based on active filters
+  const filteredLocations = locations.filter((location) => activeFilters.includes(location.category || "general"))
+
+  // Toggle filter
+  const toggleFilter = (categoryId: string) => {
+    setActiveFilters((prev) =>
+      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId],
+    )
+  }
 
   // Reset form when modal opens/closes
   const resetForm = () => {
@@ -65,6 +98,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     setNotes("")
     setAlbumLink("")
     setVisitedDate("")
+    setCategory("general")
     setPhotos([])
     setClickedCoords(null)
     setError("")
@@ -82,6 +116,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     setNotes(location.notes || "")
     setAlbumLink(location.album_link || "")
     setVisitedDate(location.visited_date || "")
+    setCategory(location.category || "general")
     setPhotos([]) // Can't pre-populate files, user will need to re-upload if they want to change photos
   }
 
@@ -282,7 +317,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     if (map.current) {
       addLocationMarkers()
     }
-  }, [locations])
+  }, [filteredLocations])
 
   const addLocationMarkers = () => {
     if (!map.current) return
@@ -291,22 +326,21 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
     const existingMarkers = document.querySelectorAll(".custom-marker")
     existingMarkers.forEach((marker) => marker.remove())
 
-    // Add markers for each location
-    locations.forEach((location) => {
+    // Add markers for each filtered location
+    filteredLocations.forEach((location) => {
       const mapboxgl = (window as any).mapboxgl
+      const categoryInfo = getCategoryInfo(location.category || "general")
 
-      // Create custom marker element with beautiful design and animation
+      // Create custom marker element with category-based colors
       const el = document.createElement("div")
       el.className = "custom-marker"
       el.innerHTML = `
         <div class="relative marker-container">
-          <div class="marker-pulse absolute inset-0 w-8 h-8 bg-red-400 rounded-full animate-ping opacity-20"></div>
-          <div class="marker-main relative w-8 h-8 bg-gradient-to-br from-red-500 to-pink-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center transform transition-all duration-200 hover:scale-110 cursor-pointer">
-            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-            </svg>
+          <div class="marker-pulse absolute inset-0 w-8 h-8 bg-${categoryInfo.color.split(" ")[1].replace("to-", "")} rounded-full animate-ping opacity-20"></div>
+          <div class="marker-main relative w-8 h-8 bg-gradient-to-br ${categoryInfo.color} rounded-full border-2 border-white shadow-lg flex items-center justify-center transform transition-all duration-200 hover:scale-110 cursor-pointer">
+            <span class="text-white text-xs">${categoryInfo.icon}</span>
           </div>
-          <div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gradient-to-br from-red-500 to-pink-600 rotate-45"></div>
+          <div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gradient-to-br ${categoryInfo.color} rotate-45"></div>
         </div>
       `
 
@@ -375,8 +409,12 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
             <div class="p-6 pb-4">
               ${createPhotoCarousel(location.photo_urls || [])}
               
-              <!-- Location Title -->
+              <!-- Location Title with Category -->
               <div class="mb-4">
+                <div class="flex items-center mb-2">
+                  <span class="text-lg mr-2">${categoryInfo.icon}</span>
+                  <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">${categoryInfo.name}</span>
+                </div>
                 <h3 class="text-xl font-semibold text-gray-900 leading-tight mb-1">${location.city_name}</h3>
                 <div class="flex items-center text-gray-500">
                   <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,7 +470,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                 location.album_link
                   ? `
                 <div class="mb-6">
-                  <a href="${location.album_link}" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition-colors duration-200 text-sm font-medium">
+                  <a href="${location.album_link}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-700 transition-colors duration-200 text-sm font-medium">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                     </svg>
@@ -617,6 +655,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           notes: notes || null,
           album_link: albumLink || null,
           visited_date: visitedDate || null,
+          category: category,
         }
 
         // Only update photos if new ones were uploaded
@@ -640,6 +679,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           photo_urls: photoUrls.length > 0 ? photoUrls : null,
           album_link: albumLink || null,
           visited_date: visitedDate || null,
+          category: category,
         })
 
         if (insertError) throw insertError
@@ -666,66 +706,152 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
   return (
     <>
-      <div className="relative">
-        {/* Transparent Search Bar */}
-        <div className="absolute top-4 left-4 z-10">
-          <form onSubmit={handleSearch} className="flex items-center space-x-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/70" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search for a location..."
-                className="pl-10 pr-4 h-10 w-80 bg-black/20 backdrop-blur-sm border-white/20 text-white placeholder-white/70 rounded-lg font-light text-sm focus:bg-black/30 focus:border-white/40"
-              />
+      <div className="relative flex">
+        {/* Sidebar Filter */}
+        <div
+          className={`absolute left-0 top-0 h-full z-20 transition-transform duration-300 ${showFilters ? "translate-x-0" : "-translate-x-full"}`}
+        >
+          <div className="w-80 h-full bg-white/95 backdrop-blur-sm border-r border-gray-200 shadow-lg">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Filter Locations</h3>
+                <Button onClick={() => setShowFilters(false)} variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-gray-600">
+                Showing {filteredLocations.length} of {locations.length} locations
+              </p>
             </div>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={searchLoading}
-              variant="ghost"
-              className="h-10 px-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm font-light rounded-lg text-white border border-white/30 hover:border-white/50"
-            >
-              {searchLoading ? "..." : "Go"}
-            </Button>
-          </form>
-          <p className="text-xs text-white/80 font-light mt-2 ml-3 drop-shadow-sm">
-            {locations.length} locations mapped • Click anywhere to add a memory
-          </p>
-        </div>
 
-        {/* Map Style Toggle */}
-        <div className="absolute top-4 right-4 z-10">
-          <div className="relative">
-            <Button
-              onClick={() => setShowMapStyles(!showMapStyles)}
-              variant="ghost"
-              size="sm"
-              className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
-            >
-              <Layers className="h-4 w-4" />
-            </Button>
+            <div className="p-4 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto">
+              {locationCategories.map((category) => {
+                const count = locations.filter((loc) => (loc.category || "general") === category.id).length
+                const isActive = activeFilters.includes(category.id)
 
-            {showMapStyles && (
-              <div className="absolute top-12 right-0 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 p-2 min-w-[140px]">
-                {mapStyles.map((style) => (
+                return (
                   <button
-                    key={style.id}
-                    onClick={() => changeMapStyle(style.id)}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-light transition-colors flex items-center space-x-2 ${
-                      currentMapStyle === style.id ? "bg-blue-100 text-blue-900" : "text-gray-700 hover:bg-gray-100"
+                    key={category.id}
+                    onClick={() => toggleFilter(category.id)}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? "bg-blue-50 border-2 border-blue-200 text-blue-900"
+                        : "bg-gray-50 border-2 border-transparent text-gray-700 hover:bg-gray-100"
                     }`}
                   >
-                    <span>{style.icon}</span>
-                    <span>{style.name}</span>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-lg">{category.icon}</span>
+                      <div className="text-left">
+                        <p className="font-medium text-sm">{category.name}</p>
+                        <p className="text-xs opacity-70">
+                          {count} location{count !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        isActive ? "bg-blue-600 border-blue-600" : "border-gray-300"
+                      }`}
+                    >
+                      {isActive && (
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
                   </button>
-                ))}
-              </div>
-            )}
+                )
+              })}
+            </div>
+
+            <div className="p-4 border-t border-gray-200">
+              <Button
+                onClick={() => setActiveFilters(locationCategories.map((cat) => cat.id))}
+                variant="outline"
+                className="w-full text-sm"
+              >
+                Show All Categories
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div ref={mapContainer} className="w-full h-[600px] rounded-xl" />
+        {/* Main Map Container */}
+        <div className="flex-1">
+          {/* Transparent Search Bar */}
+          <div className="absolute top-4 left-4 z-10">
+            <div className="flex items-center space-x-2 mb-2">
+              <Button
+                onClick={() => setShowFilters(!showFilters)}
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+              <form onSubmit={handleSearch} className="flex items-center space-x-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/70" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search for a location..."
+                    className="pl-10 pr-4 h-10 w-80 bg-black/20 backdrop-blur-sm border-white/20 text-white placeholder-white/70 rounded-lg font-light text-sm focus:bg-black/30 focus:border-white/40"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={searchLoading}
+                  variant="ghost"
+                  className="h-10 px-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm font-light rounded-lg text-white border border-white/30 hover:border-white/50"
+                >
+                  {searchLoading ? "..." : "Go"}
+                </Button>
+              </form>
+            </div>
+            <p className="text-xs text-white/80 font-light ml-12 drop-shadow-sm">
+              {filteredLocations.length} locations shown • Click anywhere to add a memory
+            </p>
+          </div>
+
+          {/* Map Style Toggle */}
+          <div className="absolute top-4 right-4 z-10">
+            <div className="relative">
+              <Button
+                onClick={() => setShowMapStyles(!showMapStyles)}
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
+              >
+                <Layers className="h-4 w-4" />
+              </Button>
+
+              {showMapStyles && (
+                <div className="absolute top-12 right-0 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 p-2 min-w-[140px]">
+                  {mapStyles.map((style) => (
+                    <button
+                      key={style.id}
+                      onClick={() => changeMapStyle(style.id)}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm font-light transition-colors flex items-center space-x-2 ${
+                        currentMapStyle === style.id ? "bg-blue-100 text-blue-900" : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <span>{style.icon}</span>
+                      <span>{style.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div ref={mapContainer} className="w-full h-[600px] rounded-xl" />
+        </div>
       </div>
 
       {/* Add/Edit Location Modal */}
@@ -770,17 +896,38 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="visitedDate" className="font-light">
-                    Date Visited
+                  <Label htmlFor="category" className="font-light">
+                    Category *
                   </Label>
-                  <Input
-                    id="visitedDate"
-                    type="date"
-                    value={visitedDate}
-                    onChange={(e) => setVisitedDate(e.target.value)}
-                    className="rounded-xl text-sm"
-                  />
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger className="rounded-xl text-sm">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locationCategories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          <div className="flex items-center space-x-2">
+                            <span>{cat.icon}</span>
+                            <span>{cat.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="visitedDate" className="font-light">
+                  Date Visited
+                </Label>
+                <Input
+                  id="visitedDate"
+                  type="date"
+                  value={visitedDate}
+                  onChange={(e) => setVisitedDate(e.target.value)}
+                  className="rounded-xl text-sm"
+                />
               </div>
 
               <div className="space-y-2">
