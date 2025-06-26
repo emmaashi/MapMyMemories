@@ -3,7 +3,7 @@
 import { useRef, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { MapPin, Sparkles } from "lucide-react"
+import { MapPin } from "lucide-react"
 
 export default function LandingPage() {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -12,7 +12,6 @@ export default function LandingPage() {
   useEffect(() => {
     if (!mapContainer.current) return
 
-    // Initialize Mapbox map for homepage
     const mapboxgl = (window as any).mapboxgl
     if (!mapboxgl) {
       const script = document.createElement("script")
@@ -32,16 +31,16 @@ export default function LandingPage() {
         style: "mapbox://styles/mapbox/light-v11",
         center: [20, 20],
         zoom: 1.5,
-        interactive: false,
+        interactive: true,
         attributionControl: false,
       })
 
       const demoLocations = [
-        { lng: -74.006, lat: 40.7128, color: "#ef4444" }, // New York - Red
-        { lng: 2.3522, lat: 48.8566, color: "#3b82f6" }, // Paris - Blue
-        { lng: 139.6917, lat: 35.6895, color: "#10b981" }, // Tokyo - Green
-        { lng: -0.1276, lat: 51.5074, color: "#f59e0b" }, // London - Orange
-        { lng: 151.2093, lat: -33.8688, color: "#8b5cf6" }, // Sydney - Purple
+        { lng: -74.006, lat: 40.7128, color: "#ef4444" },
+        { lng: 2.3522, lat: 48.8566, color: "#3b82f6" },
+        { lng: 139.6917, lat: 35.6895, color: "#10b981" },
+        { lng: -0.1276, lat: 51.5074, color: "#f59e0b" },
+        { lng: 151.2093, lat: -33.8688, color: "#8b5cf6" },
       ]
 
       map.current.on("load", () => {
@@ -70,19 +69,25 @@ export default function LandingPage() {
     }
   }, [])
 
+  // Custom cursor tracker
+  useEffect(() => {
+    const updateCursor = (e: MouseEvent) => {
+      document.body.style.setProperty('--x', `${e.clientX}px`)
+      document.body.style.setProperty('--y', `${e.clientY}px`)
+    }
+    window.addEventListener('mousemove', updateCursor)
+    return () => window.removeEventListener('mousemove', updateCursor)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Simplified Navigation */}
       <nav className="flex items-center justify-between p-6 max-w-6xl mx-auto">
         <div className="flex items-center space-x-2">
           <img src="/logo.png" alt="Map My Memories" className="h-20 w-auto" />
         </div>
-
         <div className="flex items-center space-x-3">
           <Link href="/auth/login">
-            <Button variant="ghost" className="text-gray-600 hover:text-gray-900 font-light">
-              Log in
-            </Button>
+            <Button variant="ghost" className="text-gray-600 hover:text-gray-900 font-light">Log in</Button>
           </Link>
           <Link href="/auth/signup">
             <Button className="bg-gray-900 hover:bg-gray-800 text-white rounded-full px-6 font-light">Sign up →</Button>
@@ -90,39 +95,20 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
       <div className="max-w-4xl mx-auto px-6 pt-20 pb-16 text-center">
         <div className="mb-8">
-
           <h1 className="text-5xl md:text-7xl font-bold text-gray-900 leading-[0.9] mb-6 tracking-tight">
-            Your travel stories,
-            <br />
-             all in one place.
+            Your travel stories,<br />all in one place.
           </h1>
-
           <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed font-light">
-           Click anywhere on the world to pin your adventures and create stunning visual stories. 
+            Login to pin your adventures and memories around the world.
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <Link href="/auth/signup">
-              <Button
-                size="lg"
-                className="bg-gray-900 hover:bg-gray-800 text-white rounded-full px-8 py-4 text-lg font-light"
-              >
-                Start Mapping
-              </Button>
-            </Link>
-          </div>
         </div>
 
-        {/* Live Map Preview */}
         <div className="relative">
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-2xl border border-white/20">
-            <div className="relative overflow-hidden rounded-xl h-80">
+            <div className="relative overflow-hidden rounded-xl h-[75vh]">
               <div ref={mapContainer} className="w-full h-full" />
-
-              {/* Overlay content */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
               <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-center text-white pointer-events-none">
                 <MapPin className="h-8 w-8 mx-auto mb-2 drop-shadow-lg" />
@@ -135,17 +121,31 @@ export default function LandingPage() {
       </div>
 
       <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          50% {
-            transform: scale(1.2);
-            opacity: 0.8;
-          }
-        }
-      `}</style>
+  body {
+    cursor: none;
+    --x: 0px;
+    --y: 0px;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: var(--y);
+    left: var(--x);
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    background: radial-gradient(
+      circle,
+      rgba(168, 85, 247, 0.18) 0%,
+      rgba(168, 85, 247, 0.08) 50%,
+      transparent 100%
+    );
+  }
+`}</style>
     </div>
   )
 }
