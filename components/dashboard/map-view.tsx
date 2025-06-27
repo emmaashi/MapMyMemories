@@ -324,7 +324,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         center: [-74.006, 40.7128],
         zoom: 2,
         preserveDrawingBuffer: true,
-        // Enhanced zoom settings
         minZoom: 0.5,
         maxZoom: 20,
         scrollZoom: true,

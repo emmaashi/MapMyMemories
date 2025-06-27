@@ -247,7 +247,7 @@ export default function Dashboard({ user }: DashboardProps) {
               <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-orange-200/30 rounded-full"></div>
             </div>
           </div>
-        </div>
+        </div> 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <MapView locations={locations} onLocationAdded={handleLocationAdded} user={user} />
         </div>
