@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Globe2, Download, Settings, LogOut, MapPin, Camera, Calendar, User, TrendingUp } from "lucide-react"
+import { Globe2, Download, Settings, LogOut, MapPin, Camera, User, TrendingUp, MoreHorizontal } from 'lucide-react'
 import { useRouter } from "next/navigation"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import MapView from "./map-view"
@@ -63,7 +63,7 @@ export default function Dashboard({ user }: DashboardProps) {
   }
 
   const handleLocationAdded = () => {
-    fetchLocations() // This will refresh the locations and update all counters
+    fetchLocations()
   }
 
   const exportMap = () => {
@@ -79,45 +79,74 @@ export default function Dashboard({ user }: DashboardProps) {
   const totalPhotos = locations.reduce((sum, location) => sum + (location.photo_urls?.length || 0), 0)
   const countriesCount = new Set(locations.map((l) => l.city_name.split(",").pop()?.trim())).size
   const recentLocations = locations.slice(0, 3)
+  const thisMonthCount = locations.filter(
+    (l) => l.visited_date && new Date(l.visited_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+  ).length
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Modern Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+    <div className="min-h-screen bg-gray-50/30">
+      {/* Minimal Header */}
+      <header className="bg-white/70 backdrop-blur-xl border-b border-gray-200/40 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <img src="/logo.png" alt="Map My Memories" className="h-14 w-auto" />
+            <div className="flex items-center space-x-8">
+              <img src="/logo.png" alt="Map My Memories" className="h-8 w-auto" />
+
+              {/* Compact Stats Bar */}
+              <div className="hidden lg:flex items-center space-x-6 text-sm">
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <MapPin className="h-4 w-4 text-blue-500" />
+                  <span className="font-medium text-gray-900">{locations.length}</span>
+                  <span className="text-gray-500">places</span>
+                </div>
+                <div className="w-px h-4 bg-gray-200"></div>
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <Camera className="h-4 w-4 text-green-500" />
+                  <span className="font-medium text-gray-900">{totalPhotos}</span>
+                  <span className="text-gray-500">photos</span>
+                </div>
+                <div className="w-px h-4 bg-gray-200"></div>
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <Globe2 className="h-4 w-4 text-purple-500" />
+                  <span className="font-medium text-gray-900">{countriesCount}</span>
+                  <span className="text-gray-500">countries</span>
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <Button
                 onClick={exportMap}
-                variant="outline"
-                className="hidden sm:flex items-center space-x-2 rounded-full font-light border-gray-200 hover:bg-gray-50"
+                variant="ghost"
+                size="sm"
+                className="hidden sm:flex items-center space-x-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100/50"
               >
                 <Download className="h-4 w-4" />
-                <span>Export</span>
+                <span className="text-sm font-medium">Export</span>
               </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200">
-                    <User className="h-5 w-5" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100/50"
+                  >
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline text-sm font-medium">{user.email?.split("@")[0]}</span>
+                    <MoreHorizontal className="h-4 w-4 sm:hidden" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end">
-                  <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex items-center justify-start gap-2 p-3">
                     <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-light">{user.email}</p>
-                      <p className="w-[200px] truncate text-sm text-muted-foreground font-light">
-                        {locations.length} locations mapped
-                      </p>
+                      <p className="font-medium text-sm">{user.email}</p>
+                      <p className="text-xs text-gray-500">{locations.length} locations mapped</p>
                     </div>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center font-light">
+                    <Link href="/settings" className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Settings</span>
                     </Link>
@@ -139,117 +168,60 @@ export default function Dashboard({ user }: DashboardProps) {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Enhanced Stats Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+      <div className="max-w-7xl mx-auto px-3 py-6">
+        {/* Mobile Stats Cards - Only visible on mobile */}
+        <div className="lg:hidden mb-6">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-xl p-4 border border-gray-200/60 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-semibold text-gray-900">{locations.length}</div>
+                  <div className="text-sm text-gray-500">Places</div>
+                </div>
+                <MapPin className="h-5 w-5 text-blue-500" />
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-4 border border-gray-200/60 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-semibold text-gray-900">{totalPhotos}</div>
+                  <div className="text-sm text-gray-500">Photos</div>
+                </div>
+                <Camera className="h-5 w-5 text-green-500" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Hero Section with Map */}
+        <div className="space-y-4">
+          {/* Minimal Title Section */}
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-3xl font-light text-gray-900">Your Journey</h2>
-              <p className="text-gray-600 font-light">Track your adventures around the world</p>
+              <h1 className="text-2xl font-semibold text-gray-900">Your Journey</h1>
+              <p className="text-gray-500 text-sm mt-1">
+                {locations.length > 0
+                  ? `${locations.length} places across ${countriesCount} ${countriesCount === 1 ? "country" : "countries"}`
+                  : "Start mapping your adventures"}
+              </p>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <TrendingUp className="h-4 w-4" />
-              <span className="font-light">Updated just now</span>
-            </div>
+
+            {/* Activity Indicator */}
+            {thisMonthCount > 0 && (
+              <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-500 bg-white rounded-full px-3 py-1.5 border border-gray-200/60">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>{thisMonthCount} this month</span>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Locations Card */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200/50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <MapPin className="h-6 w-6 text-white" />
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-light text-blue-900">{locations.length}</div>
-                  <div className="text-sm font-light text-blue-700">Locations</div>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-sm font-light text-blue-900">Places Visited</div>
-                <div className="text-xs text-blue-600 font-light">
-                  {locations.length > 0 ? `Latest: ${recentLocations[0]?.city_name.split(",")[0]}` : "Start exploring!"}
-                </div>
-              </div>
-              <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-blue-200/30 rounded-full"></div>
-            </div>
-
-            {/* Photos Card */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-6 border border-green-200/50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <Camera className="h-6 w-6 text-white" />
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-light text-green-900">{totalPhotos}</div>
-                  <div className="text-sm font-light text-green-700">Photos</div>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-sm font-light text-green-900">Memories Captured</div>
-                <div className="text-xs text-green-600 font-light">
-                  {totalPhotos > 0
-                    ? `${locations.filter((l) => l.photo_urls?.length).length} locations with photos`
-                    : "Upload your first photo!"}
-                </div>
-              </div>
-              <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-green-200/30 rounded-full"></div>
-            </div>
-
-            {/* Countries Card */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200/50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <Globe2 className="h-6 w-6 text-white" />
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-light text-purple-900">{countriesCount}</div>
-                  <div className="text-sm font-light text-purple-700">Countries</div>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-sm font-light text-purple-900">Countries Explored</div>
-                <div className="text-xs text-purple-600 font-light">
-                  {countriesCount > 0
-                    ? `Across ${countriesCount} ${countriesCount === 1 ? "country" : "countries"}`
-                    : "Discover new countries!"}
-                </div>
-              </div>
-              <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-purple-200/30 rounded-full"></div>
-            </div>
-
-            {/* Recent Activity Card */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-6 border border-orange-200/50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <Calendar className="h-6 w-6 text-white" />
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-light text-orange-900">
-                    {
-                      locations.filter(
-                        (l) =>
-                          l.visited_date && new Date(l.visited_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                      ).length
-                    }
-                  </div>
-                  <div className="text-sm font-light text-orange-700">This Month</div>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-sm font-light text-orange-900">Recent Visits</div>
-                <div className="text-xs text-orange-600 font-light">
-                  {recentLocations.length > 0 && recentLocations[0].visited_date
-                    ? `Last visit: ${new Date(recentLocations[0].visited_date).toLocaleDateString()}`
-                    : "Add visit dates to track activity"}
-                </div>
-              </div>
-              <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-orange-200/30 rounded-full"></div>
-            </div>
+          {/* Map Container - Now the hero element */}
+          <div
+            className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden"
+            style={{ height: "calc(100vh - 220px)", minHeight: "500px" }}
+          >
+            <MapView locations={locations} onLocationAdded={handleLocationAdded} user={user} />
           </div>
-        </div> 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <MapView locations={locations} onLocationAdded={handleLocationAdded} user={user} />
         </div>
       </div>
     </div>

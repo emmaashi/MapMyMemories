@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useRef, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -24,6 +23,9 @@ import {
   Plus,
   Minus,
   RotateCcw,
+  Maximize,
+  Minimize,
+  Check,
 } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
 
@@ -92,8 +94,52 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   const [showMapStyles, setShowMapStyles] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [activeFilters, setActiveFilters] = useState<string[]>(locationCategories.map((cat) => cat.id))
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
   const supabase = createClient()
   const [existingPhotos, setExistingPhotos] = useState<string[]>([])
+
+  // Fullscreen functionality
+  const toggleFullscreen = async () => {
+    try {
+      if (!isFullscreen) {
+        if (mapContainer.current?.requestFullscreen) {
+          await mapContainer.current.requestFullscreen()
+        } else if ((mapContainer.current as any)?.webkitRequestFullscreen) {
+          await (mapContainer.current as any).webkitRequestFullscreen()
+        } else if ((mapContainer.current as any)?.msRequestFullscreen) {
+          await (mapContainer.current as any).msRequestFullscreen()
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen()
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen()
+        } else if ((document as any).msExitFullscreen) {
+          await (document as any).msExitFullscreen()
+        }
+      }
+    } catch (error) {
+      console.error("Fullscreen error:", error)
+    }
+  }
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange)
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange)
+    document.addEventListener("msfullscreenchange", handleFullscreenChange)
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange)
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange)
+      document.removeEventListener("msfullscreenchange", handleFullscreenChange)
+    }
+  }, [])
 
   // Get category info helper
   const getCategoryInfo = (categoryId: string) => {
@@ -218,12 +264,10 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           e.stopPropagation()
           // Reset form first
           resetForm()
-
           // Always add new location for search results
           setClickedCoords({ lat, lng })
           setCityName(placeName)
           setShowModal(true)
-
           // Remove temp marker
           if (tempMarker.current) {
             tempMarker.current.remove()
@@ -255,7 +299,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
     try {
       const { error } = await supabase.from("locations").delete().eq("id", locationId)
-
       if (error) throw error
 
       handleLocationModalClose()
@@ -279,7 +322,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
       map.current.setStyle(`mapbox://styles/mapbox/${styleId}`)
       setCurrentMapStyle(styleId)
       setShowMapStyles(false)
-
       // Re-add markers after style change
       map.current.on("styledata", () => {
         addLocationMarkers()
@@ -455,7 +497,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!isEditMode && !clickedCoords) return
     if (isEditMode && !editingLocation) return
 
@@ -551,24 +592,33 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   return (
     <>
       <div className="relative flex">
-        {/* Sidebar Filter */}
+        {/* Apple-Style Ultra-Minimal Filter Sidebar */}
         <div
-          className={`absolute left-0 top-0 h-full z-20 transition-transform duration-300 ${showFilters ? "translate-x-0" : "-translate-x-full"}`}
+          className={`absolute left-0 top-0 h-full z-20 transition-all duration-500 ease-out ${
+            showFilters ? "translate-x-0" : "-translate-x-full"
+          }`}
         >
-          <div className="w-80 h-full bg-white/95 backdrop-blur-sm border-r border-gray-200 shadow-lg">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Filter Locations</h3>
-                <Button onClick={() => setShowFilters(false)} variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <X className="h-4 w-4" />
-                </Button>
+          <div className="w-56 h-full bg-white/80 backdrop-blur-2xl border-r border-white/20 shadow-2xl">
+            {/* Ultra-minimal header */}
+            <div className="p-3 border-b border-white/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 tracking-tight">Filters</h3>
+                  <p className="text-xs text-gray-500 mt-0.5 font-light">
+                    {filteredLocations.length} of {locations.length}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="w-6 h-6 rounded-full bg-gray-100/80 hover:bg-gray-200/80 flex items-center justify-center transition-all duration-200"
+                >
+                  <X className="h-3 w-3 text-gray-600" />
+                </button>
               </div>
-              <p className="text-sm text-gray-600">
-                Showing {filteredLocations.length} of {locations.length} locations
-              </p>
             </div>
 
-            <div className="p-4 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto">
+            {/* Apple-style filter list */}
+            <div className="p-2 space-y-0.5 max-h-[calc(100vh-120px)] overflow-y-auto">
               {locationCategories.map((category) => {
                 const count = locations.filter((loc) => (loc.category || "general") === category.id).length
                 const isActive = activeFilters.includes(category.id)
@@ -577,156 +627,149 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                   <button
                     key={category.id}
                     onClick={() => toggleFilter(category.id)}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 ${
-                      isActive
-                        ? "bg-blue-50 border-2 border-blue-200 text-blue-900"
-                        : "bg-gray-50 border-2 border-transparent text-gray-700 hover:bg-gray-100"
+                    className={`w-full flex items-center justify-between p-2.5 rounded-lg transition-all duration-200 text-sm group ${
+                      isActive ? "bg-blue-500/10 text-blue-900 shadow-sm" : "text-gray-700 hover:bg-gray-100/50"
                     }`}
                   >
-                    <div className="flex items-center space-x-3">
-                      <span className="text-lg">{category.icon}</span>
+                    <div className="flex items-center space-x-2.5">
+                      <span className="text-base leading-none">{category.icon}</span>
                       <div className="text-left">
-                        <p className="font-medium text-sm">{category.name}</p>
-                        <p className="text-xs opacity-70">
-                          {count} location{count !== 1 ? "s" : ""}
-                        </p>
+                        <span className="font-medium tracking-tight">{category.name}</span>
                       </div>
                     </div>
-                    <div
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                        isActive ? "bg-blue-600 border-blue-600" : "border-gray-300"
-                      }`}
-                    >
-                      {isActive && (
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-xs font-medium ${isActive ? "text-blue-600" : "text-gray-400"}`}>
+                        {count}
+                      </span>
+                      <div
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                          isActive
+                            ? "bg-blue-500 border-blue-500 scale-110"
+                            : "border-gray-300 group-hover:border-gray-400"
+                        }`}
+                      >
+                        {isActive && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+                      </div>
                     </div>
                   </button>
                 )
               })}
-            </div>
-
-            <div className="p-4 border-t border-gray-200">
-              <Button
-                onClick={() => setActiveFilters(locationCategories.map((cat) => cat.id))}
-                variant="outline"
-                className="w-full text-sm"
-              >
-                Show All Categories
-              </Button>
             </div>
           </div>
         </div>
 
         {/* Main Map Container */}
         <div className="flex-1">
-          {/* Transparent Search Bar */}
+          {/* Apple-Style Translucent Search Bar */}
           <div className="absolute top-4 left-4 z-10">
-            <div className="flex items-center space-x-2 mb-2">
-              <Button
+            <div className="flex items-center space-x-2">
+              <button
                 onClick={() => setShowFilters(!showFilters)}
-                variant="ghost"
-                size="sm"
-                className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
+                className="w-9 h-9 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl border border-white/20 flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl"
               >
-                <Filter className="h-4 w-4" />
-              </Button>
+                <Filter className="h-4 w-4 text-white drop-shadow-sm" />
+              </button>
+
               <form onSubmit={handleSearch} className="flex items-center space-x-2">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/70" />
-                  <Input
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/70 drop-shadow-sm" />
+                  <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search for a location..."
-                    className="pl-10 pr-4 h-10 w-80 bg-black/20 backdrop-blur-sm border-white/20 text-white placeholder-white/70 rounded-lg font-light text-sm focus:bg-black/30 focus:border-white/40"
+                    placeholder="Search places..."
+                    className="pl-10 pr-4 h-9 w-72 bg-white/20 backdrop-blur-xl border border-white/20 text-white placeholder-white/70 rounded-xl text-sm font-light shadow-lg focus:bg-white/30 focus:border-white/40 focus:outline-none transition-all duration-200"
                   />
                 </div>
-                <Button
+                <button
                   type="submit"
-                  size="sm"
                   disabled={searchLoading}
-                  variant="ghost"
-                  className="h-10 px-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm font-light rounded-lg text-white border border-white/30 hover:border-white/50"
+                  className="h-9 px-4 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl border border-white/20 text-sm font-medium text-white shadow-lg transition-all duration-200 disabled:opacity-50"
                 >
                   {searchLoading ? "..." : "Go"}
-                </Button>
+                </button>
               </form>
             </div>
-            <p className="text-xs text-white/80 font-light ml-12 drop-shadow-sm">
-              {filteredLocations.length} locations shown • Click anywhere to add a memory
-            </p>
           </div>
 
-          {/* Map Controls - Top Right */}
+          {/* Apple-Style Translucent Map Controls */}
           <div className="absolute top-4 right-4 z-10 flex flex-col space-y-2">
-            {/* Map Style Toggle */}
+            {/* Fullscreen Toggle */}
+            <button
+              onClick={toggleFullscreen}
+              className="w-9 h-9 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl border border-white/20 flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl"
+              title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+            >
+              {isFullscreen ? (
+                <Minimize className="h-4 w-4 text-white drop-shadow-sm" />
+              ) : (
+                <Maximize className="h-4 w-4 text-white drop-shadow-sm" />
+              )}
+            </button>
+
+            {/* Apple-style Map Style Selector */}
             <div className="relative">
-              <Button
+              <button
                 onClick={() => setShowMapStyles(!showMapStyles)}
-                variant="ghost"
-                size="sm"
-                className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
+                className="w-9 h-9 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl border border-white/20 flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl"
               >
-                <Layers className="h-4 w-4" />
-              </Button>
+                <Layers className="h-4 w-4 text-white drop-shadow-sm" />
+              </button>
 
               {showMapStyles && (
-                <div className="absolute top-12 right-0 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-white/20 p-2 min-w-[140px]">
+                <div className="absolute top-11 right-0 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/20 p-2 min-w-[140px] animate-in slide-in-from-top-2 duration-300">
                   {mapStyles.map((style) => (
                     <button
                       key={style.id}
                       onClick={() => changeMapStyle(style.id)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm font-light transition-colors flex items-center space-x-2 ${
-                        currentMapStyle === style.id ? "bg-blue-100 text-blue-900" : "text-gray-700 hover:bg-gray-100"
+                      className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all duration-200 flex items-center space-x-3 ${
+                        currentMapStyle === style.id
+                          ? "bg-blue-500/10 text-blue-900 shadow-sm"
+                          : "text-gray-700 hover:bg-gray-100/50"
                       }`}
                     >
-                      <span>{style.icon}</span>
-                      <span>{style.name}</span>
+                      <span className="text-base">{style.icon}</span>
+                      <span className="font-medium tracking-tight">{style.name}</span>
+                      {currentMapStyle === style.id && (
+                        <Check className="w-4 h-4 text-blue-600 ml-auto" strokeWidth={2.5} />
+                      )}
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Zoom Controls */}
+            {/* Apple-style Zoom Controls */}
             <div className="flex flex-col space-y-1">
-              <Button
+              <button
                 onClick={zoomIn}
-                variant="ghost"
-                size="sm"
-                className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
+                className="w-9 h-9 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl border border-white/20 flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl"
                 title="Zoom In"
               >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button
+                <Plus className="h-4 w-4 text-white drop-shadow-sm" strokeWidth={2.5} />
+              </button>
+              <button
                 onClick={zoomOut}
-                variant="ghost"
-                size="sm"
-                className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
+                className="w-9 h-9 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl border border-white/20 flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl"
                 title="Zoom Out"
               >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <Button
+                <Minus className="h-4 w-4 text-white drop-shadow-sm" strokeWidth={2.5} />
+              </button>
+              <button
                 onClick={resetView}
-                variant="ghost"
-                size="sm"
-                className="h-10 w-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-white border-white/20 p-0"
+                className="w-9 h-9 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl border border-white/20 flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl"
                 title="Reset View"
               >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
+                <RotateCcw className="h-4 w-4 text-white drop-shadow-sm" strokeWidth={2.5} />
+              </button>
             </div>
           </div>
 
-          <div ref={mapContainer} className="w-full h-[600px] rounded-xl" />
+          <div
+            ref={mapContainer}
+            className={`w-full rounded-xl transition-all duration-300 ${
+              isFullscreen ? "h-screen rounded-none" : "h-[600px]"
+            }`}
+          />
         </div>
       </div>
 
@@ -1079,7 +1122,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                   type="button"
                   variant="outline"
                   onClick={handleModalClose}
-                  className="rounded-xl font-light text-sm"
+                  className="rounded-xl font-light text-sm bg-transparent"
                 >
                   Cancel
                 </Button>
@@ -1105,7 +1148,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
             opacity: 1;
           }
         }
-
         @keyframes slideInScale {
           0% {
             opacity: 0;
@@ -1116,17 +1158,25 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
             transform: translateY(0) scale(1);
           }
         }
-
         .marker-container:hover .marker-pulse {
           animation-duration: 1s;
         }
-
         .temp-marker {
           cursor: pointer;
         }
-
         .temp-marker:hover {
           transform: scale(1.1);
+        }
+        
+        /* Fullscreen styles */
+        .fullscreen-map {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 9999 !important;
+          border-radius: 0 !important;
         }
       `}</style>
     </>
