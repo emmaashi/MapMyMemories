@@ -79,14 +79,13 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
-      {/* Floating Navbar */}
-      <header className="sticky top-6 z-50 flex justify-center">
-        <div className="flex items-center justify-between w-fit px-6 py-2 bg-white/70 backdrop-blur-xl shadow-md rounded-full border border-gray-200 space-x-8 text-sm font-medium">
+      <header className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="flex items-center justify-between w-fit px-6 py-2 bg-white/20 backdrop-blur-xl shadow-md rounded-full border border-gray-200 space-x-8 text-sm font-medium">
           <div className="flex items-center space-x-2">
             <img src="/logo.png" alt="Map My Memories" className="h-8 w-auto" />
           </div>
           <nav className="hidden md:flex items-center space-x-6 text-slate-700">
-    
+            {/* Add future nav links here */}
           </nav>
           <div className="flex items-center space-x-3">
             <Link href="/auth/login" className="text-slate-600 hover:text-slate-900">
@@ -103,7 +102,7 @@ export default function LandingPage() {
 
       {/* Hero */}
       <div className="text-center px-6 pt-36 max-w-4xl mx-auto">
-        <div className="inline-flex items-center rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 ring-1 ring-blue-700/10 mb-6">
+        <div className="inline-flex mt-10 items-center rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 ring-1 ring-blue-700/10 mb-6">
           <Sparkles className="mr-2 h-4 w-4" />
           Beautiful travel journaling
         </div>
@@ -134,44 +133,6 @@ export default function LandingPage() {
     <p className="text-sm font-light drop-shadow-lg">Click anywhere to add your memories</p>
   </div>
 </div>
-
-      <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          50% {
-            transform: scale(1.2);
-            opacity: 0.8;
-          }
-        }
-
-        body {
-          cursor: none;
-          --x: 0px;
-          --y: 0px;
-        }
-
-        body::after {
-          content: "";
-          position: fixed;
-          top: var(--y);
-          left: var(--x);
-          width: 120px;
-          height: 120px;
-          border-radius: 50%;
-          pointer-events: none;
-          transform: translate(-50%, -50%);
-          z-index: 9999;
-          background: radial-gradient(
-            circle,
-            rgba(168, 85, 247, 0.18) 0%,
-            rgba(168, 85, 247, 0.08) 50%,
-            transparent 100%
-          );
-        }
-      `}</style>
     </div>
   )
 }
