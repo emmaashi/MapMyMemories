@@ -6,8 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -39,37 +38,59 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
-      <div className="w-full max-w-md">
-        {/* Card Header */}
-        <div className="bg-[#f5f7ff] rounded-t-2xl px-8 pt-8 pb-6 flex items-center justify-between">
-          <img src="/logo.png" alt="Map My Memories" className="h-10 w-auto" />
-          <Link href="/auth/signup">
-            <Button className="bg-indigo-500 hover:bg-indigo-600 text-white rounded-full px-6 font-light shadow-md">Sign up →</Button>
+    <div className="min-h-screen w-full gradient-purple flex flex-col inset-0">
+      <header className="absolute top-0 left-0 right-0 p-6 z-10">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <Link href="/" className="group">
+            <ArrowLeft className="h-5 w-5 text-gray-600 group-hover:text-gray-900 transition-colors" />
+          </Link>
+          <Link href="/auth/signup" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+            Sign up
           </Link>
         </div>
-        {/* Card Body */}
-        <div className="bg-white rounded-b-2xl shadow-xl px-8 py-10 border border-gray-100">
-          <form onSubmit={handleLogin} className="space-y-6 w-full">
-            <div className="space-y-2 w-full">
-              <Label htmlFor="email" className="text-base font-medium text-gray-700">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="john@example.com"
-                  required
-                  className="pl-10 h-12 border border-gray-200 focus:border-indigo-400 focus:ring-0 rounded-lg w-full min-w-0 bg-white text-gray-900 text-base shadow-sm"
-                />
-              </div>
+      </header>
+
+      {/* Main Content - Centered */}
+      <div className="flex-1 flex items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          {/* Logo */}
+          <div className="text-center mb-12">
+            <img src="/logo.png" alt="Map My Memories" className="h-12 w-auto mx-auto mb-8" />
+            <h1 className="text-4xl font-semibold text-gray-900 mb-2">Welcome back</h1>
+            <p className="text-gray-600">Sign in to your account</p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                required
+                className="h-12 bg-white/50 border-gray-300 focus:border-primary focus:ring-0 rounded-xl text-base transition-all placeholder-gray-400"
+                autoFocus
+              />
             </div>
-            <div className="space-y-2 w-full">
-              <Label htmlFor="password" className="text-base font-medium text-gray-700">Password</Label>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  Password
+                </Label>
+                <Link 
+                  href="/auth/forgot-password" 
+                  className="text-sm text-primary hover:text-primary/80 transition-colors"
+                >
+                  Forgot?
+                </Link>
+              </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -77,32 +98,40 @@ export default function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className="pl-10 pr-10 h-12 border border-gray-200 focus:border-indigo-400 focus:ring-0 rounded-lg w-full min-w-0 bg-white text-gray-900 text-base shadow-sm"
+                  className="h-12 pr-12 bg-white/50 border-gray-300 focus:border-primary focus:ring-0 rounded-xl text-base transition-all placeholder-gray-400"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-indigo-500"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
+
             {error && (
-              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">{error}</div>
+              <div className="text-red-600 text-sm">
+                {error}
+              </div>
             )}
+
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium shadow-md text-base"
+              className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-          <div className="mt-6 text-center">
-            <p className="text-gray-600 text-base">
-              {"Don't have an account? "}
-              <Link href="/auth/signup" className="text-indigo-600 hover:text-indigo-700 font-medium">Sign up</Link>
+
+          {/* Footer */}
+          <div className="mt-12 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{" "}
+              <Link href="/auth/signup" className="text-primary hover:text-primary/80 transition-colors font-medium">
+                Sign up
+              </Link>
             </p>
           </div>
         </div>

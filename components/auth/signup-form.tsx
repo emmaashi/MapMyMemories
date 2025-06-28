@@ -6,8 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, User, Mail, Lock, CheckCircle, Eye, EyeOff } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -20,7 +19,6 @@ export default function SignupForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -37,6 +35,12 @@ export default function SignupForm() {
 
     if (password !== confirmPassword) {
       setError("Passwords do not match")
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters")
       setLoading(false)
       return
     }
@@ -64,7 +68,7 @@ export default function SignupForm() {
         }
       }
 
-      setSuccess(true)
+      router.push('/dashboard')
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -72,133 +76,143 @@ export default function SignupForm() {
     }
   }
 
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col justify-center items-center">
-        <nav className="flex items-center justify-between w-full max-w-2xl px-6 pt-8">
-          <Link href="/" className="flex items-center space-x-2">
-            <img src="/logo.png" alt="Map My Memories" className="h-16 w-auto" />
-          </Link>
-        </nav>
-        <div className="w-full max-w-md mx-auto mt-8">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-white/20">
-            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="h-8 w-8 text-indigo-500" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 text-center">Check Your Email</h2>
-            <p className="text-gray-600 mt-2 text-center">We've sent you a confirmation link to complete your registration</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col justify-center items-center">
-      <nav className="flex items-center justify-between w-full max-w-2xl px-6 pt-8">
-        <Link href="/" className="flex items-center space-x-2">
-          <img src="/logo.png" alt="Map My Memories" className="h-16 w-auto" />
-        </Link>
-        <Link href="/auth/login">
-          <Button className="bg-indigo-500 hover:bg-indigo-600 text-white rounded-full px-6 font-light shadow-md">Sign in →</Button>
-        </Link>
-      </nav>
-      <div className="w-full max-w-lg mx-auto mt-8">
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-white/20">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2 text-center">Create Account</h2>
-          <p className="text-gray-600 mb-6 text-center">Enter your information to create your travel account</p>
-          <form onSubmit={handleSignup} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
-                    className="pl-10 h-12 border-gray-200 focus:border-indigo-400 focus:ring-0 rounded-lg bg-white/80"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="john@example.com"
-                    required
-                    className="pl-10 h-12 border-gray-200 focus:border-indigo-400 focus:ring-0 rounded-lg bg-white/80"
-                  />
-                </div>
+    <div className="min-h-screen w-full gradient-purple flex flex-col">
+      {/* Minimal Header */}
+      <header className="absolute top-0 left-0 right-0 p-6 z-10">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <Link href="/" className="group">
+            <ArrowLeft className="h-5 w-5 text-gray-600 group-hover:text-gray-900 transition-colors" />
+          </Link>
+          <Link href="/auth/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+            Sign in
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Content - Centered */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-sm">
+          {/* Logo */}
+          <div className="text-center mb-10">
+            <img src="/logo.png" alt="Map My Memories" className="h-12 w-auto mx-auto mb-8" />
+            <h1 className="text-4xl font-semibold text-gray-900 mb-2">Create account</h1>
+            <p className="text-gray-600">Start your journey today</p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSignup} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
+                Full name
+              </Label>
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="John Doe"
+                required
+                className="h-12 bg-white/50 border-gray-300 focus:border-primary focus:ring-0 rounded-xl text-base transition-all placeholder-gray-400"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                required
+                className="h-12 bg-white/50 border-gray-300 focus:border-primary focus:ring-0 rounded-xl text-base transition-all placeholder-gray-400"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Create a password"
+                  required
+                  className="h-12 pr-12 bg-white/50 border-gray-300 focus:border-primary focus:ring-0 rounded-xl text-base transition-all placeholder-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Create password"
-                    required
-                    className="pl-10 pr-10 h-12 border-gray-200 focus:border-indigo-400 focus:ring-0 rounded-lg bg-white/80"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-indigo-500"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm password"
-                    required
-                    className="pl-10 pr-10 h-12 border-gray-200 focus:border-indigo-400 focus:ring-0 rounded-lg bg-white/80"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-indigo-500"
-                  >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                Confirm password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
+                  required
+                  className="h-12 pr-12 bg-white/50 border-gray-300 focus:border-primary focus:ring-0 rounded-xl text-base transition-all placeholder-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
+
             {error && (
-              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200">{error}</div>
+              <div className="text-red-600 text-sm">
+                {error}
+              </div>
             )}
+
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium shadow-md"
+              className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? "Creating account..." : "Create account"}
             </Button>
+
+            <p className="text-xs text-gray-500 text-center">
+              By creating an account, you agree to our{" "}
+              <Link href="/terms" className="text-primary hover:text-primary/80 transition-colors">
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="text-primary hover:text-primary/80 transition-colors">
+                Privacy Policy
+              </Link>
+            </p>
           </form>
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Already have an account?{' '}
-              <Link href="/auth/login" className="text-indigo-600 hover:text-indigo-700 font-medium">Sign in</Link>
+
+          {/* Footer */}
+          <div className="mt-10 text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{" "}
+              <Link href="/auth/login" className="text-primary hover:text-primary/80 transition-colors font-medium">
+                Sign in
+              </Link>
             </p>
           </div>
         </div>
