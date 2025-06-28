@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Globe2, Download, Settings, LogOut, MapPin, Camera, User, TrendingUp, MoreHorizontal } from 'lucide-react'
+import { Globe2, Download, Settings, LogOut, MapPin, Camera, Map, Plus } from 'lucide-react'
 import { useRouter } from "next/navigation"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import MapView from "./map-view"
@@ -78,152 +78,101 @@ export default function Dashboard({ user }: DashboardProps) {
 
   const totalPhotos = locations.reduce((sum, location) => sum + (location.photo_urls?.length || 0), 0)
   const countriesCount = new Set(locations.map((l) => l.city_name.split(",").pop()?.trim())).size
-  const recentLocations = locations.slice(0, 3)
-  const thisMonthCount = locations.filter(
-    (l) => l.visited_date && new Date(l.visited_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-  ).length
 
   return (
-    <div className="min-h-screen bg-gray-50/30">
-      {/* Minimal Header */}
-      <header className="bg-white/70 backdrop-blur-xl border-b border-gray-200/40 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <img src="/logo.png" alt="Map My Memories" className="h-8 w-auto" />
+    <div className="h-screen flex flex-col bg-white overflow-hidden">
+      <nav className="bg-white/72 backdrop-blur-apple border-b border-gray-200/50 z-50">
+        <div className="px-4 sm:px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center">
+            <img src="/logo.png" alt="Map My Memories" className="h-8 w-auto" />
+          </Link>
 
-              {/* Compact Stats Bar */}
-              <div className="hidden lg:flex items-center space-x-6 text-sm">
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <MapPin className="h-4 w-4 text-blue-500" />
-                  <span className="font-medium text-gray-900">{locations.length}</span>
-                  <span className="text-gray-500">places</span>
-                </div>
-                <div className="w-px h-4 bg-gray-200"></div>
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Camera className="h-4 w-4 text-green-500" />
-                  <span className="font-medium text-gray-900">{totalPhotos}</span>
-                  <span className="text-gray-500">photos</span>
-                </div>
-                <div className="w-px h-4 bg-gray-200"></div>
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Globe2 className="h-4 w-4 text-purple-500" />
-                  <span className="font-medium text-gray-900">{countriesCount}</span>
-                  <span className="text-gray-500">countries</span>
-                </div>
-              </div>
+          <div className="hidden sm:flex items-center space-x-6 text-sm">
+            <div className="flex items-center space-x-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-gray-900">{locations.length}</span>
+              <span className="text-gray-500">places</span>
             </div>
+            <div className="flex items-center space-x-2">
+              <Camera className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-gray-900">{totalPhotos}</span>
+              <span className="text-gray-500">photos</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Globe2 className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-gray-900">{countriesCount}</span>
+              <span className="text-gray-500">countries</span>
+            </div>
+          </div>
 
-            <div className="flex items-center space-x-3">
-              <Button
-                onClick={exportMap}
-                variant="ghost"
-                size="sm"
-                className="hidden sm:flex items-center space-x-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100/50"
-              >
-                <Download className="h-4 w-4" />
-                <span className="text-sm font-medium">Export</span>
-              </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100/50"
-                  >
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline text-sm font-medium">{user.email?.split("@")[0]}</span>
-                    <MoreHorizontal className="h-4 w-4 sm:hidden" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
-                  <div className="flex items-center justify-start gap-2 p-3">
-                    <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium text-sm">{user.email}</p>
-                      <p className="text-xs text-gray-500">{locations.length} locations mapped</p>
-                    </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              onClick={exportMap}
+              variant="ghost"
+              size="sm"
+              className="hidden sm:flex text-gray-600 hover:text-gray-900 hover:bg-gray-100/60 rounded-xl transition-apple"
+            >
+              <Download className="h-4 w-4" />
+              <span className="ml-2 hidden md:inline">Export</span>
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0 hover:bg-gray-100/60 rounded-xl transition-apple"
+                >
+                  <div className="h-7 w-7 rounded-full bg-primary text-white flex items-center justify-center text-xs font-medium">
+                    {user.email?.charAt(0).toUpperCase()}
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportMap}>
-                    <Download className="mr-2 h-4 w-4" />
-                    <span>Export Map</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-3 py-6">
-        {/* Mobile Stats Cards - Only visible on mobile */}
-        <div className="lg:hidden mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-xl p-4 border border-gray-200/60 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-semibold text-gray-900">{locations.length}</div>
-                  <div className="text-sm text-gray-500">Places</div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 rounded-2xl" align="end">
+                <div className="px-3 py-2">
+                  <p className="text-sm font-medium text-gray-900">{user.email}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{locations.length} locations mapped</p>
                 </div>
-                <MapPin className="h-5 w-5 text-blue-500" />
-              </div>
-            </div>
-            <div className="bg-white rounded-xl p-4 border border-gray-200/60 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-semibold text-gray-900">{totalPhotos}</div>
-                  <div className="text-sm text-gray-500">Photos</div>
-                </div>
-                <Camera className="h-5 w-5 text-green-500" />
-              </div>
-            </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild className="rounded-lg">
+                  <Link href="/settings" className="flex items-center">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportMap} className="rounded-lg">
+                  <Download className="mr-2 h-4 w-4" />
+                  <span>Export Map</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="rounded-lg text-red-600">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+      </nav>
 
-        {/* Hero Section with Map */}
-        <div className="space-y-4">
-          {/* Minimal Title Section */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Your Journey</h1>
-              <p className="text-gray-500 text-sm mt-1">
-                {locations.length > 0
-                  ? `${locations.length} places across ${countriesCount} ${countriesCount === 1 ? "country" : "countries"}`
-                  : "Start mapping your adventures"}
-              </p>
+<main className="relative overflow-hidden bg-gray-50" style={{ height: "calc(100vh - 56px)" }}>
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <Map className="h-12 w-12 text-primary animate-pulse mx-auto mb-4" />
+              <p className="text-gray-600">Loading your map...</p>
             </div>
-
-            {/* Activity Indicator */}
-            {thisMonthCount > 0 && (
-              <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-500 bg-white rounded-full px-3 py-1.5 border border-gray-200/60">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span>{thisMonthCount} this month</span>
-              </div>
-            )}
           </div>
-
-          {/* Map Container - Now the hero element */}
-          <div
-            className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden"
-            style={{ height: "calc(100vh - 220px)", minHeight: "500px" }}
-          >
-            <MapView locations={locations} onLocationAdded={handleLocationAdded} user={user} />
+        ) : (
+          <div className="absolute inset-0 h-full">
+            <MapView 
+              locations={locations} 
+              onLocationAdded={handleLocationAdded} 
+              user={user} 
+            />
           </div>
-        </div>
-      </div>
+        )}
+      </main>
     </div>
   )
 }

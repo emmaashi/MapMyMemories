@@ -34,14 +34,11 @@ export default function AddLocationModal({ user, onClose, onLocationAdded }: Add
     setError("")
 
     try {
-      // For now, we'll use placeholder coordinates
-      // In a real implementation, you'd use Mapbox Geocoding API
       const latitude = Math.random() * 180 - 90
       const longitude = Math.random() * 360 - 180
 
       let photoUrl = null
 
-      // Upload photo if provided
       if (photo) {
         const fileExt = photo.name.split(".").pop()
         const fileName = `${user.id}/${Date.now()}.${fileExt}`
@@ -92,7 +89,7 @@ export default function AddLocationModal({ user, onClose, onLocationAdded }: Add
           <DialogTitle className="text-xl font-semibold">Add New Location</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-2">
           <div className="space-y-2">
             <Label htmlFor="cityName">City Name *</Label>
             <Input

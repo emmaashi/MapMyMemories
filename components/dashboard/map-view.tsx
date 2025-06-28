@@ -7,19 +7,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  MapPin,
   ImagePlus,
   ExternalLink,
   Search,
   Layers,
-  Edit3,
   Filter,
   X,
   Calendar,
-  FileText,
   Plus,
   Minus,
   RotateCcw,
@@ -264,7 +260,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
           e.stopPropagation()
           // Reset form first
           resetForm()
-          // Always add new location for search results
           setClickedCoords({ lat, lng })
           setCityName(placeName)
           setShowModal(true)
@@ -773,12 +768,12 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         </div>
       </div>
 
-      {/* Location Details Modal - Centered */}
+      {/* Location Details Modal - Apple Design */}
       {showLocationModal && selectedLocation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/20 backdrop-blur-md"
             onClick={handleLocationModalClose}
             style={{
               animation: "fadeIn 0.3s ease-out",
@@ -787,116 +782,115 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
           {/* Modal Content */}
           <div
-            className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col overflow-hidden"
+            className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden border border-white/50"
             style={{
               animation: "slideInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
-            {/* Header - Fixed */}
-            <div className="relative p-6 pb-4 border-b border-gray-100 flex-shrink-0">
-              <button
-                onClick={handleLocationModalClose}
-                className="absolute top-4 right-4 w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
-              >
-                <X className="h-4 w-4 text-gray-600" />
-              </button>
+            {/* Photo Section - Full width at top */}
+            {selectedLocation.photo_urls && selectedLocation.photo_urls.length > 0 && (
+              <div className="relative flex-shrink-0 bg-gray-100">
+                <img
+                  src={selectedLocation.photo_urls[currentPhotoIndex] || "/placeholder.svg"}
+                  alt={selectedLocation.city_name}
+                  className="w-full h-72 object-cover"
+                />
 
-              <div className="flex items-center justify-between pr-12">
-                <div className="flex items-center space-x-3">
-                  <span className="text-xl">{getCategoryInfo(selectedLocation.category || "general").icon}</span>
-                  <span className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                    {getCategoryInfo(selectedLocation.category || "general").name}
-                  </span>
-                </div>
+                {/* Close button overlaid on photo */}
+                <button
+                  onClick={handleLocationModalClose}
+                  className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm hover:bg-white text-gray-700 rounded-full flex items-center justify-center transition-all shadow-lg"
+                >
+                  <X className="h-5 w-5" />
+                </button>
 
-                {/* Inline Action Buttons */}
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleEditLocation(selectedLocation)}
-                    className="flex items-center space-x-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <Edit3 className="h-3 w-3" />
-                    <span>Edit</span>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteLocation(selectedLocation.id)}
-                    className="w-8 h-8 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg flex items-center justify-center transition-colors"
-                  >
-                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+                {selectedLocation.photo_urls.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevPhoto}
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full flex items-center justify-center hover:bg-white transition-all shadow-lg"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={nextPhoto}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm text-gray-700 rounded-full flex items-center justify-center hover:bg-white transition-all shadow-lg"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
 
-              <h2 className="text-xl font-semibold text-gray-900 leading-tight mt-3">{selectedLocation.city_name}</h2>
-              <div className="flex items-center text-gray-500 mt-1">
-                <MapPin className="h-4 w-4 mr-1.5" />
-                <span className="text-sm">Memory location</span>
-              </div>
-            </div>
-
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto">
-              {/* Photo Section - Only show if photos exist */}
-              {selectedLocation.photo_urls && selectedLocation.photo_urls.length > 0 && (
-                <div className="relative flex-shrink-0">
-                  <img
-                    src={selectedLocation.photo_urls[currentPhotoIndex] || "/placeholder.svg"}
-                    alt={selectedLocation.city_name}
-                    className="w-full h-64 object-cover"
-                  />
-
-                  {selectedLocation.photo_urls.length > 1 && (
-                    <>
-                      <button
-                        onClick={prevPhoto}
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={nextPhoto}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-
-                      <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                        {selectedLocation.photo_urls.map((_, index) => (
-                          <button
-                            key={index}
-                            onClick={() => setCurrentPhotoIndex(index)}
-                            className={`w-2 h-2 rounded-full transition-all ${
-                              index === currentPhotoIndex ? "bg-white scale-125" : "bg-white/60"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Content Details */}
-              <div className="p-6 space-y-4">
-                {/* Visit Date - Only show if date exists */}
-                {selectedLocation.visited_date && (
-                  <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-xl">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Calendar className="h-4 w-4 text-blue-600" />
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-1.5 bg-black/20 backdrop-blur-sm rounded-full px-3 py-1.5">
+                      {selectedLocation.photo_urls.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentPhotoIndex(index)}
+                          className={`transition-all ${
+                            index === currentPhotoIndex ? "w-6 h-1.5 bg-white rounded-full" : "w-1.5 h-1.5 bg-white/60 rounded-full"
+                          }`}
+                        />
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Visited</p>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Header - Without photo */}
+            {(!selectedLocation.photo_urls || selectedLocation.photo_urls.length === 0) && (
+              <div className="relative pt-6">
+                <button
+                  onClick={handleLocationModalClose}
+                  className="absolute top-4 right-4 w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-apple"
+                >
+                  <X className="h-5 w-5 text-gray-600" />
+                </button>
+              </div>
+            )}
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-6 pt-4">
+                {/* Location Info */}
+                <div className="mb-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 pr-2">
+                      <h2 className="text-2xl font-semibold text-gray-900 mb-1">{selectedLocation.city_name}</h2>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{getCategoryInfo(selectedLocation.category || "general").icon}</span>
+                        <span className="text-sm text-gray-600">
+                          {getCategoryInfo(selectedLocation.category || "general").name}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center space-x-4 mt-3">
+                    <button
+                      onClick={() => handleEditLocation(selectedLocation)}
+                      className="text-primary hover:text-primary/80 transition-colors text-sm font-medium"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteLocation(selectedLocation.id)}
+                      className="text-red-600 hover:text-red-700 transition-colors text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="space-y-4">
+                  {/* Visit Date */}
+                  {selectedLocation.visited_date && (
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="h-4 w-4 text-gray-400" />
                       <p className="text-sm text-gray-600">
                         {new Date(selectedLocation.visited_date).toLocaleDateString("en-US", {
                           year: "numeric",
@@ -905,72 +899,84 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                         })}
                       </p>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Notes - Only show if notes exist */}
-                {selectedLocation.notes && selectedLocation.notes.trim() && (
-                  <div>
-                    <div className="flex items-center space-x-2 mb-2">
-                      <FileText className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium text-gray-700">Memory</span>
+                  {/* Notes */}
+                  {selectedLocation.notes && selectedLocation.notes.trim() && (
+                    <div className="pt-3 border-t border-gray-100">
+                      <p className="text-gray-700 leading-relaxed text-sm">
+                        {selectedLocation.notes}
+                      </p>
                     </div>
-                    <p className="text-gray-700 leading-relaxed text-sm bg-gray-50 p-3 rounded-xl">
-                      {selectedLocation.notes}
-                    </p>
-                  </div>
-                )}
+                  )}
 
-                {/* Album Link - Only show if link exists */}
-                {selectedLocation.album_link && selectedLocation.album_link.trim() && (
-                  <div>
+                  {/* Album Link */}
+                  {selectedLocation.album_link && selectedLocation.album_link.trim() && (
                     <a
                       href={selectedLocation.album_link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors text-sm font-medium"
+                      className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors text-sm font-medium pt-3"
                     >
                       <ExternalLink className="h-4 w-4" />
                       <span>View Full Album</span>
                     </a>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Add/Edit Location Modal */}
+      {/* Add/Edit Location Modal - Apple Design */}
       {showModal && (
-        <Dialog open={true} onOpenChange={handleModalClose}>
-          <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-light flex items-center space-x-2">
-                {isEditMode ? (
-                  <>
-                    <Edit3 className="h-4 w-4 text-blue-600" />
-                    <span>Edit Memory</span>
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="h-4 w-4 text-blue-600" />
-                    <span>Add Memory</span>
-                  </>
-                )}
-              </DialogTitle>
-              {isEditMode && (
-                <p className="text-sm text-gray-600 font-light">
-                  Updating your memory for {editingLocation?.city_name}
-                </p>
-              )}
-            </DialogHeader>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/20 backdrop-blur-md"
+            onClick={handleModalClose}
+            style={{
+              animation: "fadeIn 0.3s ease-out",
+            }}
+          />
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cityName" className="font-light">
-                    Location Name *
+          {/* Modal Content */}
+          <div
+            className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden border border-white/50"
+            style={{
+              animation: "slideInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-100">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 pr-3">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {isEditMode ? "Edit Location" : "Add New Location"}
+                  </h2>
+                  {isEditMode && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {editingLocation?.city_name}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleModalClose}
+                  className="w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-apple flex-shrink-0"
+                >
+                  <X className="h-5 w-5 text-gray-600" />
+                </button>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-180px)]">
+              {/* Location & Category */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="cityName" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                    Location Name
                   </Label>
                   <Input
                     id="cityName"
@@ -978,24 +984,24 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                     onChange={(e) => setCityName(e.target.value)}
                     placeholder="e.g., Paris, France"
                     required
-                    className="rounded-xl font-light text-sm"
+                    className="h-11 bg-gray-50 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base transition-all placeholder-gray-400"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="category" className="font-light">
-                    Category *
+                <div>
+                  <Label htmlFor="category" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                    Category
                   </Label>
                   <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger className="rounded-xl text-sm">
-                      <SelectValue placeholder="Select category" />
+                    <SelectTrigger className="h-11 bg-gray-50 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base">
+                      <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-2xl">
                       {locationCategories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          <div className="flex items-center space-x-2">
-                            <span>{cat.icon}</span>
-                            <span>{cat.name}</span>
+                        <SelectItem key={cat.id} value={cat.id} className="rounded-xl">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-lg">{cat.icon}</span>
+                            <span className="text-sm">{cat.name}</span>
                           </div>
                         </SelectItem>
                       ))}
@@ -1004,8 +1010,9 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="visitedDate" className="font-light">
+              {/* Date */}
+              <div>
+                <Label htmlFor="visitedDate" className="text-sm font-medium text-gray-700 mb-1.5 block">
                   Date Visited
                 </Label>
                 <Input
@@ -1013,12 +1020,13 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                   type="date"
                   value={visitedDate}
                   onChange={(e) => setVisitedDate(e.target.value)}
-                  className="rounded-xl text-sm"
+                  className="h-11 bg-gray-50 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="font-light">
+              {/* Memory */}
+              <div>
+                <Label htmlFor="notes" className="text-sm font-medium text-gray-700 mb-1.5 block">
                   Your Memory
                 </Label>
                 <Textarea
@@ -1026,14 +1034,15 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="What made this place special?"
-                  rows={2}
-                  className="rounded-xl font-light text-sm"
+                  rows={3}
+                  className="bg-gray-50 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base resize-none placeholder-gray-400"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="photos" className="font-light">
-                  {isEditMode ? "Add More Photos" : "Photos"} {photos.length > 0 && `(${photos.length} selected)`}
+              {/* Photos */}
+              <div>
+                <Label htmlFor="photos" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  Photos {photos.length > 0 && <span className="text-gray-500 font-normal">({photos.length})</span>}
                 </Label>
                 <div className="space-y-3">
                   <Input
@@ -1044,29 +1053,51 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                     onChange={handlePhotoChange}
                     className="hidden"
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
                     onClick={() => document.getElementById("photos")?.click()}
-                    className="flex items-center space-x-2 rounded-xl font-light w-full h-10 border-dashed border-2 hover:bg-gray-50 text-sm"
+                    className="w-full h-24 border-2 border-dashed border-gray-300 hover:border-primary rounded-2xl flex flex-col items-center justify-center space-y-2 transition-colors bg-gray-50 hover:bg-gray-100"
                   >
-                    <ImagePlus className="h-4 w-4" />
-                    <span>{isEditMode ? "Add More Photos" : "Choose Photos"}</span>
-                  </Button>
+                    <ImagePlus className="h-6 w-6 text-gray-400" />
+                    <span className="text-sm text-gray-600">{isEditMode ? "Add More Photos" : "Add Photos"}</span>
+                  </button>
 
-                  {photos.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2">
+                  {/* Photo Previews */}
+                  {(photos.length > 0 || (isEditMode && existingPhotos.length > 0)) && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {/* New Photos */}
                       {photos.map((photo, index) => (
-                        <div key={index} className="relative group">
+                        <div key={`new-${index}`} className="relative group">
                           <img
                             src={URL.createObjectURL(photo) || "/placeholder.svg"}
                             alt={`Preview ${index + 1}`}
-                            className="w-full h-16 object-cover rounded-lg"
+                            className="w-full h-20 object-cover rounded-xl"
                           />
                           <button
                             type="button"
                             onClick={() => removePhoto(index)}
-                            className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 shadow-sm"
+                          >
+                            ×
+                          </button>
+                          <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/50 text-white text-xs rounded-md">
+                            New
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {/* Existing Photos */}
+                      {isEditMode && existingPhotos.map((url, index) => (
+                        <div key={`existing-${index}`} className="relative group">
+                          <img
+                            src={url || "/placeholder.svg"}
+                            alt={`Existing ${index + 1}`}
+                            className="w-full h-20 object-cover rounded-xl"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeExistingPhoto(index)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 shadow-sm"
                           >
                             ×
                           </button>
@@ -1074,69 +1105,61 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                       ))}
                     </div>
                   )}
-
-                  {isEditMode && existingPhotos.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-sm text-gray-600 font-light mb-2">Existing Photos:</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {existingPhotos.map((url, index) => (
-                          <div key={index} className="relative group">
-                            <img
-                              src={url || "/placeholder.svg"}
-                              alt={`Existing ${index + 1}`}
-                              className="w-full h-16 object-cover rounded-lg"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeExistingPhoto(index)}
-                              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="albumLink" className="font-light flex items-center space-x-1">
-                  <span>Album Link</span>
-                  <ExternalLink className="h-3 w-3" />
+              {/* Album Link */}
+              <div>
+                <Label htmlFor="albumLink" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  Album Link <span className="text-gray-500 font-normal">(optional)</span>
                 </Label>
-                <Input
-                  id="albumLink"
-                  value={albumLink}
-                  onChange={(e) => setAlbumLink(e.target.value)}
-                  placeholder="Link to photo album (optional)"
-                  className="rounded-xl font-light text-sm"
-                />
+                <div className="relative">
+                  <Input
+                    id="albumLink"
+                    value={albumLink}
+                    onChange={(e) => setAlbumLink(e.target.value)}
+                    placeholder="https://photos.app/..."
+                    className="h-11 pl-4 pr-10 bg-gray-50 border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-2xl text-base placeholder-gray-400"
+                  />
+                  <ExternalLink className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                </div>
               </div>
 
-              {error && <div className="text-red-600 text-sm bg-red-50 p-3 rounded-xl font-light">{error}</div>}
+              {error && (
+                <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-2xl">
+                  {error}
+                </div>
+              )}
+            </form>
 
-              <div className="flex justify-end space-x-2 pt-2">
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+              <div className="flex justify-end space-x-3">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   onClick={handleModalClose}
-                  className="rounded-xl font-light text-sm bg-transparent"
+                  className="px-6 py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-2xl transition-apple font-medium"
                 >
                   Cancel
                 </Button>
                 <Button
-                  type="submit"
+                  onClick={handleSubmit}
                   disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700 rounded-xl font-light text-sm"
+                  className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-2xl transition-apple font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
-                  {loading ? (isEditMode ? "Updating..." : "Adding...") : isEditMode ? "Update Memory" : "Add Memory"}
+                  {loading ? (
+                    <span className="flex items-center">
+                      <span className="animate-pulse">{isEditMode ? "Updating..." : "Adding..."}</span>
+                    </span>
+                  ) : (
+                    <span>{isEditMode ? "Update Location" : "Add Location"}</span>
+                  )}
                 </Button>
               </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </div>
+          </div>
+        </div>
       )}
 
       <style jsx global>{`
