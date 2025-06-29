@@ -79,60 +79,103 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
-      <header className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
-        <div className="flex items-center justify-between w-fit px-6 py-2 bg-white/20 backdrop-blur-xl shadow-md rounded-full border border-gray-200 space-x-8 text-sm font-medium">
-          <div className="flex items-center space-x-2">
-            <img src="/logo.png" alt="Map My Memories" className="h-8 w-auto" />
+      {/* Animated Plane Path Background */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <svg
+          width="100vw"
+          height="100vh"
+          viewBox="0 0 1440 800"
+          fill="none"
+          className="absolute w-full h-full"
+          style={{ minHeight: 600 }}
+        >
+          {/* Dotted Path: top left to bottom right, less opacity */}
+          <path
+            id="flightPath"
+            d="M 100 120 C 250 200, 200 400, 400 350 S 700 200, 800 400 S 1100 700, 1300 600 Q 1400 550 1350 750"
+            stroke="#a78bfa"
+            strokeWidth="2"
+            strokeDasharray="8 8"
+            fill="none"
+            opacity="0.3"
+          />
+          {/* Plane (animated) */}
+          <g>
+            <animateMotion
+              dur="8s"
+              repeatCount="indefinite"
+              keyPoints="0;1"
+              keyTimes="0;1"
+            >
+              <mpath xlinkHref="#flightPath" />
+            </animateMotion>
+            {/* Simple plane shape */}
+            <polygon
+              points="0,0 20,5 0,10 5,5"
+              fill="#a78bfa"
+              stroke="#6d28d9"
+              strokeWidth="1"
+            />
+          </g>
+        </svg>
+      </div>
+      {/* Main content should be above the plane background */}
+      <div className="relative z-10">
+        <header className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
+          <div className="flex items-center justify-between w-fit px-6 py-2 bg-white/20 backdrop-blur-xl shadow-md rounded-full border border-gray-200 space-x-8 text-sm font-medium">
+            <div className="flex items-center space-x-2">
+              <img src="/logo.png" alt="Map My Memories" className="h-8 w-auto" />
+            </div>
+            <nav className="hidden md:flex items-center space-x-6 text-slate-700">
+              {/* Add future nav links here */}
+            </nav>
+            <div className="flex items-center space-x-3">
+              <Link href="/auth/login" className="text-slate-600 hover:text-slate-900">
+                Log in
+              </Link>
+              <Link href="/auth/signup">
+                <Button className="bg-black text-white hover:bg-gray-900 px-5 py-2 rounded-full">
+                  Sign up <ArrowRight className="ml-1 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
-          <nav className="hidden md:flex items-center space-x-6 text-slate-700">
-            {/* Add future nav links here */}
-          </nav>
-          <div className="flex items-center space-x-3">
-            <Link href="/auth/login" className="text-slate-600 hover:text-slate-900">
-              Log in
-            </Link>
+        </header>
+
+        {/* Hero */}
+        <div className="text-center px-6 pt-36 max-w-4xl mx-auto">
+          <div className="inline-flex mt-10 items-center rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 ring-1 ring-blue-700/10 mb-6">
+            <Sparkles className="mr-2 h-4 w-4" />
+            Beautiful travel journaling
+          </div>
+          <h1 className="text-7xl sm:text-7xl font-bold text-slate-900 leading-tight">
+            Your travel stories,
+            <br />all in one place.
+          </h1>
+          <p className="mt-6 text-lg text-slate-600 leading-relaxed max-w-xl mx-auto">
+            Pin your adventures, upload photos, and build a stunning map of memories that lasts forever.
+          </p>
+          <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
             <Link href="/auth/signup">
-              <Button className="bg-black text-white hover:bg-gray-900 px-5 py-2 rounded-full">
-                Sign up <ArrowRight className="ml-1 h-4 w-4" />
+              <Button size="lg" className="bg-slate-900 text-white hover:bg-slate-800 rounded-md px-6">
+                Start mapping
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
           </div>
         </div>
-      </header>
 
-      {/* Hero */}
-      <div className="text-center px-6 pt-36 max-w-4xl mx-auto">
-        <div className="inline-flex mt-10 items-center rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 ring-1 ring-blue-700/10 mb-6">
-          <Sparkles className="mr-2 h-4 w-4" />
-          Beautiful travel journaling
-        </div>
-        <h1 className="text-7xl sm:text-7xl font-bold text-slate-900 leading-tight">
-          Your travel stories,
-          <br />all in one place.
-        </h1>
-        <p className="mt-6 text-lg text-slate-600 leading-relaxed max-w-xl mx-auto">
-          Pin your adventures, upload photos, and build a stunning map of memories that lasts forever.
-        </p>
-        <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-          <Link href="/auth/signup">
-            <Button size="lg" className="bg-slate-900 text-white hover:bg-slate-800 rounded-md px-6">
-              Start mapping
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
+        {/* Map Section */}
+        <div className="relative mt-24 max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl ring-1 ring-slate-900/10">
+          <div ref={mapContainer} className="h-[75vh] w-full" />
+          {/* Floating overlay */}
+          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-center text-white pointer-events-none z-10">
+            <MapPin className="h-8 w-8 mx-auto mb-2 drop-shadow-lg" />
+            <h3 className="text-lg font-light drop-shadow-lg">Interactive World Map</h3>
+            <p className="text-sm font-light drop-shadow-lg">Click anywhere to add your memories</p>
+          </div>
         </div>
       </div>
-
-      {/* Map Section */}
-      <div className="relative mt-24 max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl ring-1 ring-slate-900/10">
-  <div ref={mapContainer} className="h-[75vh] w-full" />
-  {/* Floating overlay */}
-  <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-center text-white pointer-events-none z-10">
-    <MapPin className="h-8 w-8 mx-auto mb-2 drop-shadow-lg" />
-    <h3 className="text-lg font-light drop-shadow-lg">Interactive World Map</h3>
-    <p className="text-sm font-light drop-shadow-lg">Click anywhere to add your memories</p>
-  </div>
-</div>
     </div>
   )
 }
