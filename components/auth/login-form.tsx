@@ -83,12 +83,6 @@ export default function LoginForm() {
                 <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                   Password
                 </Label>
-                <Link 
-                  href="/auth/forgot-password" 
-                  className="text-sm text-primary hover:text-primary/80 transition-colors"
-                >
-                  Forgot?
-                </Link>
               </div>
               <div className="relative">
                 <Input
@@ -105,7 +99,7 @@ export default function LoginForm() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
                 </button>
               </div>
             </div>
