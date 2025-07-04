@@ -892,11 +892,15 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
                     <div className="flex items-center space-x-3">
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <p className="text-sm text-gray-600">
-                        {new Date(selectedLocation.visited_date).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
+                        {(() => {
+                          const [year, month, day] = selectedLocation.visited_date.split("-");
+                          const localDate = new Date(Number(year), Number(month) - 1, Number(day));
+                          return localDate.toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          });
+                        })()}
                       </p>
                     </div>
                   )}
