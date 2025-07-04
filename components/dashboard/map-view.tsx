@@ -569,7 +569,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
               </div>
             </div>
 
-            {/* Apple-style filter list */}
             <div className="p-2 space-y-0.5 max-h-[calc(100vh-120px)] overflow-y-auto">
               {locationCategories.map((category) => {
                 const count = locations.filter((loc) => (loc.category || "general") === category.id).length
@@ -612,7 +611,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
         {/* Main Map Container */}
         <div className="flex-1">
-          {/* Apple-Style Translucent Search Bar */}
           <div className="absolute top-4 left-4 z-10">
             <div className="flex items-center space-x-2">
               <button
@@ -677,7 +675,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
               )}
             </div>
 
-            {/* Apple-style Zoom Controls */}
             <div className="flex flex-col space-y-1">
               <button
                 onClick={zoomIn}
@@ -705,7 +702,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
           <div
             ref={mapContainer}
-            className={`w-full rounded-xl transition-all duration-300 h-screen rounded-none" : "h-[950px]"}`}
+            className={`w-full transition-all duration-300 h-screen rounded-none" : "h-[950px]"}`}
           />
         </div>
       </div>
