@@ -90,52 +90,9 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   const [showMapStyles, setShowMapStyles] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [activeFilters, setActiveFilters] = useState<string[]>(locationCategories.map((cat) => cat.id))
-  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const supabase = createClient()
   const [existingPhotos, setExistingPhotos] = useState<string[]>([])
-
-  // Fullscreen functionality
-  const toggleFullscreen = async () => {
-    try {
-      if (!isFullscreen) {
-        if (mapContainer.current?.requestFullscreen) {
-          await mapContainer.current.requestFullscreen()
-        } else if ((mapContainer.current as any)?.webkitRequestFullscreen) {
-          await (mapContainer.current as any).webkitRequestFullscreen()
-        } else if ((mapContainer.current as any)?.msRequestFullscreen) {
-          await (mapContainer.current as any).msRequestFullscreen()
-        }
-      } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen()
-        } else if ((document as any).webkitExitFullscreen) {
-          await (document as any).webkitExitFullscreen()
-        } else if ((document as any).msExitFullscreen) {
-          await (document as any).msExitFullscreen()
-        }
-      }
-    } catch (error) {
-      console.error("Fullscreen error:", error)
-    }
-  }
-
-  // Listen for fullscreen changes
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement)
-    }
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange)
-    document.addEventListener("webkitfullscreenchange", handleFullscreenChange)
-    document.addEventListener("msfullscreenchange", handleFullscreenChange)
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange)
-      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange)
-      document.removeEventListener("msfullscreenchange", handleFullscreenChange)
-    }
-  }, [])
 
   // Get category info helper
   const getCategoryInfo = (categoryId: string) => {
@@ -571,9 +528,9 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setPhotos(Array.from(e.target.files))
-    }
+    if (!e.target.files) return
+    const newFiles = Array.from(e.target.files)
+    setPhotos((prev) => [...prev, ...newFiles])
   }
 
   const removePhoto = (index: number) => {
@@ -688,19 +645,6 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
           {/* Apple-Style Translucent Map Controls */}
           <div className="absolute top-4 right-4 z-10 flex flex-col space-y-2">
-            {/* Fullscreen Toggle */}
-            <button
-              onClick={toggleFullscreen}
-              className="w-9 h-9 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl border border-white/20 flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl"
-              title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            >
-              {isFullscreen ? (
-                <Minimize className="h-4 w-4 text-white drop-shadow-sm" />
-              ) : (
-                <Maximize className="h-4 w-4 text-white drop-shadow-sm" />
-              )}
-            </button>
-
             {/* Apple-style Map Style Selector */}
             <div className="relative">
               <button
@@ -761,14 +705,12 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
 
           <div
             ref={mapContainer}
-            className={`w-full rounded-xl transition-all duration-300 ${
-              isFullscreen ? "h-screen rounded-none" : "h-[600px]"
-            }`}
+            className={`w-full rounded-xl transition-all duration-300 h-screen rounded-none" : "h-[950px]"}`}
           />
         </div>
       </div>
 
-      {/* Location Details Modal - Apple Design */}
+      {/* Location Details Modal */}
       {showLocationModal && selectedLocation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
@@ -933,7 +875,7 @@ export default function MapView({ locations, onLocationAdded, user }: MapViewPro
         </div>
       )}
 
-      {/* Add/Edit Location Modal - Apple Design */}
+      {/* Edit Location Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}

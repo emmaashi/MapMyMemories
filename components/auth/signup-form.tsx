@@ -77,7 +77,7 @@ export default function SignupForm() {
   }
 
   return (
-    <div className="min-h-screen w-full gradient-purple flex flex-col">
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
       {/* Minimal Header */}
       <header className="absolute top-0 left-0 right-0 p-6 z-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -112,7 +112,7 @@ export default function SignupForm() {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="John Doe"
                 required
-                className="h-12 bg-white/50 border-gray-300 focus:border-primary focus:ring-0 rounded-xl text-base transition-all placeholder-gray-400"
+                className="h-12 bg-white/30 border-none focus:ring-2 focus:ring-primary/20 rounded-xl text-base transition-all placeholder-gray-400 shadow-none"
                 autoFocus
               />
             </div>
@@ -128,7 +128,7 @@ export default function SignupForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
                 required
-                className="h-12 bg-white/50 border-gray-300 focus:border-primary focus:ring-0 rounded-xl text-base transition-all placeholder-gray-400"
+                className="h-12 bg-white/30 border-none focus:ring-2 focus:ring-primary/20 rounded-xl text-base transition-all placeholder-gray-400 shadow-none"
               />
             </div>
 
@@ -144,7 +144,7 @@ export default function SignupForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Create a password"
                   required
-                  className="h-12 pr-12 bg-white/50 border-gray-300 focus:border-primary focus:ring-0 rounded-xl text-base transition-all placeholder-gray-400"
+                  className="h-12 pr-12 bg-white/30 border-none focus:ring-2 focus:ring-primary/20 rounded-xl text-base transition-all placeholder-gray-400 shadow-none"
                 />
                 <button
                   type="button"
@@ -168,7 +168,7 @@ export default function SignupForm() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm your password"
                   required
-                  className="h-12 pr-12 bg-white/50 border-gray-300 focus:border-primary focus:ring-0 rounded-xl text-base transition-all placeholder-gray-400"
+                  className="h-12 pr-12 bg-white/30 border-none focus:ring-2 focus:ring-primary/20 rounded-xl text-base transition-all placeholder-gray-400 shadow-none"
                 />
                 <button
                   type="button"
@@ -189,7 +189,7 @@ export default function SignupForm() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating account..." : "Create account"}
             </Button>
