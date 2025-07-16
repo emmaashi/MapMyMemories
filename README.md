@@ -7,6 +7,8 @@
 - 🔐 Secure login/signup with Supabase Auth
 - 🧾 Export map as a high-res image
 
+https://github.com/user-attachments/assets/0a3480e5-4954-44d3-a39a-c26a832f7aaf
+
 ## Tech Stack
 
 - **Frontend:** Next.js, TypeScript, Tailwind CSS
@@ -21,6 +23,4 @@ git clone https://github.com/emmaashi/map-my-memories
 cd map-my-memories
 npm install
 npm run dev
-
-https://github.com/user-attachments/assets/f5f731d4-dbf7-4f41-9470-42f42259da41
 
